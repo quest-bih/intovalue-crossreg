@@ -1,0 +1,132 @@
+---
+title: "Results report manual validations cross-registration"
+format: html
+editor: visual
+---
+
+# Introduction
+
+# Dataset and packages
+
+```{r message = FALSE, warning = FALSE}
+
+data <- read.csv("~/Desktop/Research group Strech/intovalue-crossreg/manual check cross-registrations/data/final_dataset.csv", sep = ";")
+
+library(tidyverse)
+library(lubridate)
+```
+
+# Manual validation
+
+## Registry pair count
+
+```{r message = FALSE, warning = FALSE}
+
+data |>
+  count(registry1, registry2) 
+```
+
+## Overall precision
+
+```{r message = FALSE, warning = FALSE}
+
+data |>
+  count(is_true_crossreg) |>
+  mutate(percentage = round(n / sum(n) * 100, 2))
+```
+
+## Precision by category
+
+```{r message = FALSE, warning = FALSE}
+
+data |>
+  group_by(priority) |>
+  count(is_true_crossreg) |>
+  mutate(percentage = round(n / sum(n) * 100, 2))
+```
+
+# Discrepancy check
+
+For this analysis, we focused only in pairs that were labelled as true cross-registrations (i.e. `is_true_crossreg == TRUE`).
+
+## Numbers before transforming dataset
+
+A first analysis was conducted without transforming the dataset and organizing the columns `registry1` and `registry2`.
+
+### Summary results: main and sensitivity analyses
+
+```{r message = FALSE, warning = FALSE}
+
+#overview
+data |>
+    filter(is_true_crossreg == TRUE) |>
+  count(has_summary_results_reg1._main, has_summary_results_reg2_main)
+
+data |>
+  filter(is_true_crossreg == TRUE) |>
+  count(has_summary_results_reg1._sensitivity, has_summary_results_reg2._sensitivity)
+
+#overall count
+data |>
+    filter(is_true_crossreg == TRUE) |>
+  summarise(
+    main_analysis_true = sum(has_summary_results_reg1._main == has_summary_results_reg2_main, na.rm = TRUE),,
+    sensitivity_analysis_true = sum(has_summary_results_reg1._sensitivity == has_summary_results_reg2._sensitivity, na.rm = TRUE)
+  )
+```
+
+### Recruitment status
+
+```{r message = FALSE, warning = FALSE}
+
+data |> 
+  filter(is_true_crossreg == TRUE) |>
+  count(overall_recruitment_status_reg1, overall_recruitment_status_reg2)
+```
+
+Only 200 match, and only in completed-completed. There are 33 pairs that do not match in recruitment status.
+
+### Completion date
+
+```{r message = FALSE, warning = FALSE}
+
+#extract year and month
+data <- data |>
+  mutate(
+    completion_month_year_reg1 = format(as.Date(completion_date_reg1, format = "%Y-%m-%d"), "%Y-%m"),
+    completion_month_year_reg2 = format(as.Date(completion_date_reg2, format = "%Y-%m-%d"), "%Y-%m")
+  ) |>
+  relocate(completion_month_year_reg1, .after = completion_date_reg1) |>
+  relocate(completion_month_year_reg2, .after = completion_date_reg2)
+
+#discrepancy check
+data |>
+  filter(is_true_crossreg == TRUE) |>
+  mutate(match = completion_month_year_reg1 == completion_month_year_reg2) |>
+  summarise(
+    TRUE_count = sum(match, na.rm = TRUE),
+    FALSE_count = sum(!match, na.rm = TRUE)
+  )
+```
+
+## Data transformation
+
+The aim of this transformation is to mutate the columns `registry1` and `registry 2`, so that `registry1` always show EUCTR, and that `registry2` shows either ClinicalTrials.gov or DRKS.
+
+**Considerations**
+
+-   Organize data and split the data that matches the condition `registry1 != EUCTR`. Create a second data with only these cases, and remove them from the original dataset.
+
+-   In the new dataset, the following transformations are necessary:
+
+    -   Flip `trn1` and `trn2`
+
+    -   Flip `registry1` and `registry2`.
+
+    -   Flip `completion_date_reg1` and `completion_date_type_reg1` for `completion_date_reg2` and `completion_date_type_reg2`.
+
+    -   Flip `recruitment_status_reg1` and `overall_recruitment_status_reg1` for `recruitment_status_reg2` and `overall_recruitment_status_reg2`
+
+    -   Flip `has_summary_results_reg1` \_main and `has_summary_results_reg1` \_sensitivity for `has_summary_results_reg2_main` and `has_summary_results_reg2 _sensitivity`
+
+Once these transformations are done, rejoin the new dataset to the original one, and that way registry 1 is only EUCTR IDs, and registry 2 is either ClinicalTrials.gov or DRKS.
