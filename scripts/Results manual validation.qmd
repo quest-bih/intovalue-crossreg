@@ -1,0 +1,518 @@
+---
+title: "Results manual validation"
+format: html
+editor: visual
+---
+
+# Introduction
+
+# Dataset and packages
+
+```{r message = FALSE, warning = FALSE}
+
+data <- read.csv("~/Desktop/Research group Strech/intovalue-crossreg/manual check cross-registrations/data/final_dataset.csv", sep = ";")
+
+library(tidyverse)
+library(lubridate)
+```
+
+## Renaming columns
+
+```{r message = FALSE, warning = FALSE}
+
+data <- data |>
+  rename(has_summary_results_reg1_main = has_summary_results_reg1._main,
+         has_summary_results_reg1_sensitivity = has_summary_results_reg1._sensitivity,
+         has_summary_results_reg2_sensitivity = has_summary_results_reg2._sensitivity)
+```
+
+# Manual validation analysis
+
+## Registry pair count
+
+```{r message = FALSE, warning = FALSE}
+
+data |>
+  count(registry1, registry2) 
+```
+
+## Overall precision
+
+```{r message = FALSE, warning = FALSE}
+
+data |>
+  count(is_true_crossreg) |>
+  mutate(percentage = round(n / sum(n) * 100, 2))
+```
+
+## Precision by category
+
+```{r message = FALSE, warning = FALSE}
+
+data |>
+  group_by(priority) |>
+  count(is_true_crossreg) |>
+  mutate(percentage = round(n / sum(n) * 100, 2))
+```
+
+# Discrepancy check analysis
+
+For this analysis, we focused only in pairs that were labelled as true cross-registrations (i.e. `is_true_crossreg == TRUE`).
+
+## Numbers before transforming dataset
+
+A first analysis was conducted without transforming the dataset and organizing the columns `registry1` and `registry2`.
+
+### Summary results: main and sensitivity analyses
+
+```{r message = FALSE, warning = FALSE}
+
+#overview
+data |>
+    filter(is_true_crossreg == TRUE) |>
+  count(has_summary_results_reg1_main, has_summary_results_reg2_main)
+
+data |>
+  filter(is_true_crossreg == TRUE) |>
+  count(has_summary_results_reg1_sensitivity, has_summary_results_reg2_sensitivity)
+
+#overall count
+data |>
+    filter(is_true_crossreg == TRUE) |>
+  summarise(
+    main_analysis_true = sum(has_summary_results_reg1_main == has_summary_results_reg2_main, na.rm = TRUE),,
+    sensitivity_analysis_true = sum(has_summary_results_reg1_sensitivity == has_summary_results_reg2_sensitivity, na.rm = TRUE)
+  )
+```
+
+### Recruitment status
+
+```{r message = FALSE, warning = FALSE}
+
+data |> 
+  filter(is_true_crossreg == TRUE) |>
+  count(overall_recruitment_status_reg1, overall_recruitment_status_reg2)
+```
+
+Only 200 match, and only in completed-completed. There are 33 pairs that do not match in recruitment status.
+
+### Completion date
+
+```{r message = FALSE, warning = FALSE}
+
+#extract year and month
+data <- data |>
+  mutate(
+    completion_month_year_reg1 = format(as.Date(completion_date_reg1, format = "%Y-%m-%d"), "%Y-%m"),
+    completion_month_year_reg2 = format(as.Date(completion_date_reg2, format = "%Y-%m-%d"), "%Y-%m")
+  ) |>
+  relocate(completion_month_year_reg1, .after = completion_date_reg1) |>
+  relocate(completion_month_year_reg2, .after = completion_date_reg2)
+
+#discrepancy check
+data |>
+  filter(is_true_crossreg == TRUE) |>
+  mutate(match = completion_month_year_reg1 == completion_month_year_reg2) |>
+  summarise(
+    TRUE_count = sum(match, na.rm = TRUE),
+    FALSE_count = sum(!match, na.rm = TRUE)
+  )
+```
+
+## Data transformation
+
+The aim of this transformation is to mutate the columns `registry1` and `registry 2`, so that `registry1` always show EUCTR, and that `registry2` shows either ClinicalTrials.gov or DRKS.
+
+**Considerations**
+
+-   Organize data and split the data that matches the condition `registry1 != EUCTR`. Create a second data with only these cases, and remove them from the original dataset.
+
+-   In the new dataset, the following transformations are necessary:
+
+    -   Flip `trn1` and `trn2`
+
+    -   Flip `registry1` and `registry2`.
+
+    -   Flip `completion_date_reg1` and `completion_date_type_reg1` for `completion_date_reg2` and `completion_date_type_reg2`.
+
+    -   Flip `recruitment_status_reg1` and `overall_recruitment_status_reg1` for `recruitment_status_reg2` and `overall_recruitment_status_reg2`
+
+    -   Flip `has_summary_results_reg1 _main` and `has_summary_results_reg1 _sensitivity` for `has_summary_results_reg2_main` and `has_summary_results_reg2 _sensitivity`
+
+Once these transformations are done, rejoin the new dataset to the original one, and that way registry 1 is only EUCTR IDs, and registry 2 is either ClinicalTrials.gov or DRKS.
+
+### Overview
+
+```{r message = FALSE, warning = FALSE}
+
+data |>
+  count(registry1)
+```
+
+### Splitting the dataset
+
+```{r message = FALSE, warning = FALSE}
+
+#extract data to transform
+drks_ctgov_data <- data |> filter(registry1 != "EUCTR")
+
+#keep rows in data where registry1 == EUCTR
+euctr_data <- data |> filter(registry1 == "EUCTR") 
+```
+
+### Data transformation
+
+```{r message = FALSE, warning = FALSE}
+
+#REGISTRY FLIP
+data_transformed <- drks_ctgov_data |>
+  mutate(registry1_new = registry2,                  #create temporary columns to host the data
+         registry2_new = registry1) |>
+  select(-registry1, -registry2) |>                  #drop old columns
+  relocate(registry1_new, .after = trn2) |>          #relocate columns
+  relocate(registry2_new, .after = registry1_new) |>
+  rename(registry1 = registry1_new,                  #rename to original column name
+         registry2 = registry2_new)
+
+#TRN FLIP
+data_transformed <- data_transformed |>
+  mutate(trn1_new = trn2,
+         trn2_new = trn1) |>
+  select(-trn1, -trn2) |>
+  relocate(trn1_new, .before = 1) |>
+  relocate(trn2_new, .after = trn1_new) |>
+  rename(trn1 = trn1_new,
+         trn2 = trn2_new)
+
+#FLIP COMPLETION DATE
+data_transformed <- data_transformed |>
+  mutate(completion_date_reg1_new = completion_date_reg2,
+         completion_date_reg2_new = completion_date_reg1) |>
+  select(-completion_date_reg1, -completion_date_reg2) |>
+  relocate(completion_date_reg1_new, .after = second_rater_comment) |>
+  relocate(completion_date_reg2_new, .after = completion_date_type_reg1) |>
+  rename(completion_date_reg1 = completion_date_reg1_new,
+         completion_date_reg2 = completion_date_reg2_new)
+
+#FLIP COMPLWTION DATE YEAR/MONTH
+data_transformed <- data_transformed |>
+  mutate(completion_month_year_reg1_new = completion_month_year_reg2,
+         completion_month_year_reg2_new = completion_month_year_reg1) |>
+  select(-completion_month_year_reg1, -completion_month_year_reg2) |>
+  relocate(completion_month_year_reg1_new, .after = completion_date_reg1) |>
+  relocate(completion_month_year_reg2_new, .after = completion_date_reg2) |>
+  rename(completion_month_year_reg1 = completion_month_year_reg1_new,
+         completion_month_year_reg2 = completion_month_year_reg2_new)
+
+#FLIP COMPlETION DATE TYPE
+data_transformed <- data_transformed |>
+  mutate(completion_date_type_reg1_new = completion_date_type_reg2,
+         completion_date_type_reg2_new = completion_date_type_reg1) |>
+  select(-completion_date_type_reg1, -completion_date_type_reg2) |>
+  relocate(completion_date_type_reg1_new, .after = completion_month_year_reg1) |>
+  relocate(completion_date_type_reg2_new, .after = completion_month_year_reg2) |>
+  rename(completion_date_type_reg1 = completion_date_type_reg1_new,
+         completion_date_type_reg2 = completion_date_type_reg2_new)
+
+#FLIP RECRUITMENT STATUS
+data_transformed <- data_transformed |>
+  mutate(recruitment_status_reg1_new = recruitment_status_reg2,
+         recruitment_status_reg2_new = recruitment_status_reg1) |>
+  select(-recruitment_status_reg1, -recruitment_status_reg2) |>
+  relocate(recruitment_status_reg1_new, .after = completion_date_type_reg2) |>
+  relocate(recruitment_status_reg2_new, .after = overall_recruitment_status_reg1) |>
+  rename(recruitment_status_reg1 = recruitment_status_reg1_new,
+         recruitment_status_reg2 = recruitment_status_reg2_new)
+
+#FLIP OVERALL RECRUITMENT STATUS
+data_transformed <- data_transformed |>
+  mutate(overall_recruitment_status_reg1_new = overall_recruitment_status_reg2,
+         overall_recruitment_status_reg2_new = overall_recruitment_status_reg1) |>
+  select(-overall_recruitment_status_reg1, -overall_recruitment_status_reg2) |>
+  relocate(overall_recruitment_status_reg1_new, .after = recruitment_status_reg1) |>
+  relocate(overall_recruitment_status_reg2_new, .after = recruitment_status_reg2) |>
+  rename(overall_recruitment_status_reg1 = overall_recruitment_status_reg1_new,
+         overall_recruitment_status_reg2 = overall_recruitment_status_reg2_new)
+
+#HAS SUMMARY RESULTS MAIN FLIP
+data_transformed <- data_transformed |>
+  mutate(has_summary_results_reg1_main_new = has_summary_results_reg2_main,
+         has_summary_results_reg2_main_new = has_summary_results_reg1_main) |>
+  select(-has_summary_results_reg1_main, -has_summary_results_reg2_main) |>
+  relocate(has_summary_results_reg1_main_new, .after = overall_recruitment_status_reg2) |>
+  relocate(has_summary_results_reg2_main_new, .after = has_summary_results_reg1_main_new) |>
+  rename(has_summary_results_reg1_main = has_summary_results_reg1_main_new,
+         has_summary_results_reg2_main = has_summary_results_reg2_main_new)
+
+#HAS SUMMARY RESULTS SENSITIVITY FLIP
+data_transformed <- data_transformed |>
+  mutate(has_summary_results_reg1_sensitivity_new = has_summary_results_reg2_sensitivity,
+         has_summary_results_reg2_sensitivity_new = has_summary_results_reg1_sensitivity) |>
+  select(-has_summary_results_reg1_sensitivity, -has_summary_results_reg2_sensitivity) |>
+  relocate(has_summary_results_reg1_sensitivity_new, .after = has_summary_results_reg2_main) |>
+  relocate(has_summary_results_reg2_sensitivity_new, .after = has_summary_results_reg1_sensitivity_new) |>
+  rename(has_summary_results_reg1_sensitivity = has_summary_results_reg1_sensitivity_new,
+         has_summary_results_reg2_sensitivity = has_summary_results_reg2_sensitivity_new)
+```
+
+### Spot quality check
+
+The idea is to retrieve 15 random cases from `data_transformation`, and validate that the flip of columns worked fine.
+
+**Steps**:
+
+-   Draw 15 pairs from `data_transformed`.
+
+-   Select the same ones from `drks_ctgov_data`
+
+-   Compare columns - here the comparison should be that **trn1** i`n drks_ctgov_data` works matches **trn2** in `data_transformed`, and so on.
+
+```{r message = FALSE, warning = FALSE}
+
+#select 15 pairs
+set.seed(123)
+
+check_transformed <- data_transformed |>
+    sample_n(15) 
+
+#select pairs from drks_ctgov_data
+check_drks_ctgov <- drks_ctgov_data |>
+  filter(trn2 %in% c("2010-021604-16", "2008-000782-35", "2007-004038-18", "2010-024652-28",
+                     "2005-002011-24", "2009-016907-41", "2005-005835-87", "2007-000730-40",
+                     "2010-021790-37", "2011-001779-38", "2007-000871-41", "2016-001921-15",
+                     "2009-011324-60", "2007-004541-15", "2009-014396-43"))
+```
+
+```{r message = FALSE, warning = FALSE}
+
+#comparison trn
+if (setequal(check_transformed$trn1, check_drks_ctgov$trn1)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+if (setequal(check_transformed$trn2, check_drks_ctgov$trn1)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+#comparison registry
+if (setequal(check_transformed$registry1, check_drks_ctgov$registry2)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+if (setequal(check_transformed$registry2, check_drks_ctgov$registry1)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+#comparison completion date
+if (setequal(check_transformed$completion_date_reg1, check_drks_ctgov$completion_date_reg2)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+if (setequal(check_transformed$completion_date_reg2, check_drks_ctgov$completion_date_reg1)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+#comparsion completion date month/year
+if (setequal(check_transformed$completion_month_year_reg1, check_drks_ctgov$completion_month_year_reg2)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+if (setequal(check_transformed$completion_month_year_reg2, check_drks_ctgov$completion_month_year_reg1)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+#comparison completion date type
+if (setequal(check_transformed$completion_date_type_reg1, check_drks_ctgov$completion_date_type_reg2)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+if (setequal(check_transformed$completion_date_type_reg2, check_drks_ctgov$completion_date_type_reg1)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+#comparison recruitment status
+if (setequal(check_transformed$recruitment_status_reg1, check_drks_ctgov$recruitment_status_reg2)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+if (setequal(check_transformed$recruitment_status_reg2, check_drks_ctgov$recruitment_status_reg1)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+#comparison overall recruitment status
+if (setequal(check_transformed$overall_recruitment_status_reg1, check_drks_ctgov$overall_recruitment_status_reg2)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+if (setequal(check_transformed$overall_recruitment_status_reg2, check_drks_ctgov$overall_recruitment_status_reg1)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+#comparison has summary results main
+if (setequal(check_transformed$has_summary_results_reg1_main, check_drks_ctgov$has_summary_results_reg2_main)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+if (setequal(check_transformed$has_summary_results_reg2_main, check_drks_ctgov$has_summary_results_reg1_main)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+#comparison has summary results sensitivity 
+if (setequal(check_transformed$has_summary_results_reg1_sensitivity, check_drks_ctgov$has_summary_results_reg2_sensitivity)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+
+if (setequal(check_transformed$has_summary_results_reg2_sensitivity, check_drks_ctgov$has_summary_results_reg1_sensitivity)) {
+  print("Both columns contain the same values")
+} else {
+  print("The columns do not contain the same values")
+}
+```
+
+### Joining datasets
+
+After passing the quality check and review, the datasets `euctr_data` and `data_transformed` will be united for a final dataset for the discrepancy analysis.
+
+```{r message = FALSE, warning = FALSE}
+
+final_data <- bind_rows(euctr_data, data_transformed)
+```
+
+### Replicating results from before
+
+To ensure that the data remained the same, the results from the first section of the discrepancy check analysis are replicated below with observations.
+
+**1) Summary results**
+
+```{r message = FALSE, warning = FALSE}
+
+#overview
+final_data |>
+    filter(is_true_crossreg == TRUE) |>
+  count(has_summary_results_reg1_main, has_summary_results_reg2_main)
+
+final_data |>
+  filter(is_true_crossreg == TRUE) |>
+  count(has_summary_results_reg1_sensitivity, has_summary_results_reg2_sensitivity)
+
+#overall count
+final_data |>
+    filter(is_true_crossreg == TRUE) |>
+  summarise(
+    main_analysis_true = sum(has_summary_results_reg1_main == has_summary_results_reg2_main, na.rm = TRUE),,
+    sensitivity_analysis_true = sum(has_summary_results_reg1_sensitivity == has_summary_results_reg2_sensitivity, na.rm = TRUE)
+  )
+```
+
+```{r message = FALSE, warning = FALSE}
+
+#OLDER VERSION
+
+#overview
+data |>
+    filter(is_true_crossreg == TRUE) |>
+  count(has_summary_results_reg1_main, has_summary_results_reg2_main)
+
+data |>
+  filter(is_true_crossreg == TRUE) |>
+  count(has_summary_results_reg1_sensitivity, has_summary_results_reg2_sensitivity)
+
+#overall count
+data |>
+    filter(is_true_crossreg == TRUE) |>
+  summarise(
+    main_analysis_true = sum(has_summary_results_reg1_main == has_summary_results_reg2_main, na.rm = TRUE),,
+    sensitivity_analysis_true = sum(has_summary_results_reg1_sensitivity == has_summary_results_reg2_sensitivity, na.rm = TRUE)
+  )
+```
+
+The count of FALSE-TRUE and TRUE-FALSE changes after the transformation, but both sum up to 91 cases. The overall analysis remains the same.
+
+**2) Recruitment status**
+
+```{r message = FALSE, warning = FALSE}
+
+final_data |> 
+  filter(is_true_crossreg == TRUE) |>
+  count(overall_recruitment_status_reg1, overall_recruitment_status_reg2)
+```
+
+```{r message = FALSE, warning = FALSE}
+
+#OLDER VERSION
+
+data |> 
+  filter(is_true_crossreg == TRUE) |>
+  count(overall_recruitment_status_reg1, overall_recruitment_status_reg2)
+```
+
+Although the amount of combination changes, the numbers add up correctly:
+
+-   The completed-other (14) and other-completed (3) turns into completed-other in the new dataset, with 17 observations.
+
+-   The ongoing-completed (6) and completed-ongoing (6), turns into ongoing-completed in the new dataset, with 12 observations.
+
+-   Ongoing-other (4) and completed-completed (200) remained the same.
+
+**3) Completion date**
+
+```{r message = FALSE, warning = FALSE}
+
+final_data |>
+  filter(is_true_crossreg == TRUE) |>
+  mutate(match = completion_month_year_reg1 == completion_month_year_reg2) |>
+  summarise(
+    TRUE_count = sum(match, na.rm = TRUE),
+    FALSE_count = sum(!match, na.rm = TRUE)
+  )
+```
+
+```{r message = FALSE, warning = FALSE}
+
+#OLDER VERSION
+
+#discrepancy check
+data |>
+  filter(is_true_crossreg == TRUE) |>
+  mutate(match = completion_month_year_reg1 == completion_month_year_reg2) |>
+  summarise(
+    TRUE_count = sum(match, na.rm = TRUE),
+    FALSE_count = sum(!match, na.rm = TRUE)
+  )
+```
+
+The original data matches the newest data.
