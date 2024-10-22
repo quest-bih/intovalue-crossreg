@@ -1,5 +1,5 @@
 ---
-title: "Results report manual validations cross-registration"
+title: "Results manual validation"
 format: html
 editor: visual
 ---
@@ -286,7 +286,7 @@ check_drks_ctgov <- drks_ctgov_data |>
 ```{r message = FALSE, warning = FALSE}
 
 #comparison trn
-if (setequal(check_transformed$trn1, check_drks_ctgov$trn2)) {
+if (setequal(check_transformed$trn1, check_drks_ctgov$trn1)) {
   print("Both columns contain the same values")
 } else {
   print("The columns do not contain the same values")
@@ -516,5 +516,3 @@ data |>
 ```
 
 The original data matches the newest data.
-
-# Discrepancy visualizations
