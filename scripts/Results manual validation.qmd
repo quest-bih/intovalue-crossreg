@@ -10,10 +10,12 @@ editor: visual
 
 ```{r message = FALSE, warning = FALSE}
 
-data <- read.csv("~/Desktop/Research group Strech/intovalue-crossreg/manual check cross-registrations/data/final_dataset.csv", sep = ";")
+data <- read.csv("~/Desktop/Research group Strech/intovalue-crossreg/data/manual_validation_dataset.csv", sep = ";")
 
 library(tidyverse)
 library(lubridate)
+library(networkD3)
+library(ggalt)
 ```
 
 ## Renaming columns
@@ -55,7 +57,7 @@ data |>
   mutate(percentage = round(n / sum(n) * 100, 2))
 ```
 
-# Discrepancy check analysis
+# Discrepancy analysis
 
 For this analysis, we focused only in pairs that were labelled as true cross-registrations (i.e. `is_true_crossreg == TRUE`).
 
@@ -286,7 +288,7 @@ check_drks_ctgov <- drks_ctgov_data |>
 ```{r message = FALSE, warning = FALSE}
 
 #comparison trn
-if (setequal(check_transformed$trn1, check_drks_ctgov$trn1)) {
+if (setequal(check_transformed$trn1, check_drks_ctgov$trn2)) {
   print("Both columns contain the same values")
 } else {
   print("The columns do not contain the same values")
@@ -409,7 +411,7 @@ After passing the quality check and review, the datasets `euctr_data` and `data_
 
 ```{r message = FALSE, warning = FALSE}
 
-final_data <- bind_rows(euctr_data, data_transformed)
+joined_data <- bind_rows(euctr_data, data_transformed)
 ```
 
 ### Replicating results from before
@@ -421,16 +423,16 @@ To ensure that the data remained the same, the results from the first section of
 ```{r message = FALSE, warning = FALSE}
 
 #overview
-final_data |>
+joined_data |>
     filter(is_true_crossreg == TRUE) |>
   count(has_summary_results_reg1_main, has_summary_results_reg2_main)
 
-final_data |>
+joined_data |>
   filter(is_true_crossreg == TRUE) |>
   count(has_summary_results_reg1_sensitivity, has_summary_results_reg2_sensitivity)
 
 #overall count
-final_data |>
+joined_data |>
     filter(is_true_crossreg == TRUE) |>
   summarise(
     main_analysis_true = sum(has_summary_results_reg1_main == has_summary_results_reg2_main, na.rm = TRUE),,
@@ -460,13 +462,13 @@ data |>
   )
 ```
 
-The count of FALSE-TRUE and TRUE-FALSE changes after the transformation, but both sum up to 91 cases. The overall analysis remains the same.
+For example, in the main analysis the count of FALSE-TRUE and TRUE-FALSE changes after the transformation, but both sum up to 91 cases. The overall analysis remains the same.
 
 **2) Recruitment status**
 
 ```{r message = FALSE, warning = FALSE}
 
-final_data |> 
+joined_data |> 
   filter(is_true_crossreg == TRUE) |>
   count(overall_recruitment_status_reg1, overall_recruitment_status_reg2)
 ```
@@ -492,7 +494,7 @@ Although the amount of combination changes, the numbers add up correctly:
 
 ```{r message = FALSE, warning = FALSE}
 
-final_data |>
+joined_data |>
   filter(is_true_crossreg == TRUE) |>
   mutate(match = completion_month_year_reg1 == completion_month_year_reg2) |>
   summarise(
@@ -516,3 +518,383 @@ data |>
 ```
 
 The original data matches the newest data.
+
+## Discrepancy visualization
+
+These analyses are going to be conducted in only the pairs that were considered `TRUE` cross-registrations
+
+```{r message = FALSE, warning = FALSE}
+
+discrepancy_data <- joined_data |>
+  filter(is_true_crossreg == "TRUE")
+```
+
+### Summary results - main analysis
+
+Summary results are gonna be analyzed only at the level of both registries having a completed recruitment status.
+
+```{r message = FALSE, warning = FALSE}
+
+#filter data
+summary_data <- discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed", 
+         overall_recruitment_status_reg2 == "Completed") |>
+  filter(registry1 == "EUCTR" & registry2 %in% c("ClinicalTrials.gov", "DRKS")) |>
+  group_by(registry2) |>
+  summarize(
+    EUCTR_count = sum(has_summary_results_reg1_main == TRUE, na.rm = TRUE),
+    other_registry_count = sum(has_summary_results_reg1_main == FALSE &
+                               has_summary_results_reg2_main == TRUE, na.rm = TRUE)) |>
+  pivot_longer(cols = c(EUCTR_count, other_registry_count), 
+               names_to = "registry_part", values_to = "count") |>
+  mutate(registry_part = case_when(
+    registry_part == "EUCTR_count" ~ "EUCTR",
+    registry_part == "other_registry_count" ~ registry2)) |>
+  mutate(registry_part = factor(registry_part, levels = c("EUCTR", 
+                                                          "ClinicalTrials.gov", 
+                                                          "DRKS")))
+
+#create plot
+ggplot() +
+  geom_bar(data = summary_data,
+           aes(x = registry2, y = count, fill = registry_part),
+           stat = "identity", position = position_stack(reverse = TRUE)) +
+  geom_text(data = summary_data |> filter(count > 0), 
+            aes(x = registry2, y = count, label = count, group = registry_part), 
+            position = position_stack(vjust = 0.5, reverse = TRUE), 
+            color = "black", size = 4) +
+  scale_fill_manual(values = c("EUCTR" = "darkgrey", 
+                               "ClinicalTrials.gov" = "lightgrey", 
+                               "DRKS" = "lightgrey")) + 
+  labs(x = "Registry Combination", y = "Count of Summary Results", fill = "Registry") +
+  scale_x_discrete(labels = c("ClinicalTrials.gov" = "EUCTR-ClinicalTrials.gov", 
+                              "DRKS" = "EUCTR-DRKS")) +
+  scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) + 
+  theme_classic() +
+  theme(legend.position = "top")
+```
+
+**Replicating the results with `discrepancy_data`:**
+
+```{r message = FALSE, warning = FALSE}
+
+#numbers check
+discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed", 
+         overall_recruitment_status_reg2 == "Completed") |>
+  filter(registry2 == "ClinicalTrials.gov") |>
+  count(has_summary_results_reg1_main, has_summary_results_reg2_main)
+
+discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed", 
+         overall_recruitment_status_reg2 == "Completed") |>
+  filter(registry2 == "DRKS") |>
+  count(has_summary_results_reg1_main, has_summary_results_reg2_main)
+```
+
+```{r message = FALSE, warning = FALSE}
+
+discrepancy_data |>
+  count(overall_recruitment_status_reg1, overall_recruitment_status_reg2)
+
+discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed") |>
+  count(registry1, registry2)
+```
+
+**Main findings:**
+
+-   From the original 233 TRUE cross-registration pairs, 200 had in both registries their recruitment status as "Completed".
+
+-   Of those, 186 pairs were between EUCTR and ClinicalTrials.gov, and 14 between EUCTR and DRKS.
+
+-   For EUCTR-ClinicalTrials.gov: 69 pairs had summary_results posted in EUCTR (in both registries = 15, only in EUCTR = 54). ClinicalTrials.gov had 19 trials with results posted, that were not available in EUCTR.
+
+-   For EUCTR-DRKS trials: 9 pairs had summary results posted in both registries, and 5 had no summary results in either of the registries.
+
+**IDEA:** graph that shows **1) Only EUCTR, 2) EUCTR-Other registry 3) only OTHER REGISTRY.**
+
+```{r message = FALSE, warning = FALSE}
+
+#prepare data
+summary_data <- discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed", 
+         overall_recruitment_status_reg2 == "Completed") |>
+  filter(registry1 == "EUCTR" & registry2 %in% c("ClinicalTrials.gov", "DRKS")) |>
+  group_by(registry2) |>
+  summarize(
+    only_EUCTR_count = sum(has_summary_results_reg1_main == TRUE & has_summary_results_reg2_main == FALSE, na.rm = TRUE),
+    both_count = sum(has_summary_results_reg1_main == TRUE & has_summary_results_reg2_main == TRUE, na.rm = TRUE),
+    only_other_registry_count = sum(has_summary_results_reg1_main == FALSE & has_summary_results_reg2_main == TRUE, na.rm = TRUE)
+  ) |>
+  pivot_longer(cols = c(only_EUCTR_count, both_count, only_other_registry_count), 
+               names_to = "registry_part", values_to = "count") |>
+  mutate(registry_part = case_when(
+    registry_part == "only_EUCTR_count" ~ "Only EUCTR",
+    registry_part == "both_count" ~ "Both",
+    registry_part == "only_other_registry_count" ~ registry2
+  )) |>
+  mutate(registry_part = factor(registry_part, levels = c("Only EUCTR", "Both", 
+                                                          "ClinicalTrials.gov", "DRKS")))
+
+#plot
+ggplot() +
+  geom_bar(data = summary_data,
+           aes(x = registry2, y = count, fill = registry_part),
+           stat = "identity", position = position_stack(reverse = TRUE)) +
+  geom_text(data = summary_data |> filter(count > 0), 
+            aes(x = registry2, y = count, label = count, group = registry_part), 
+            position = position_stack(vjust = 0.5, reverse = TRUE), 
+            color = "black", size = 4) +
+  scale_fill_manual(values = c("Only EUCTR" = "darkgrey", 
+                               "Both" = "grey", 
+                               "ClinicalTrials.gov" = "lightgrey", 
+                               "DRKS" = "lightgrey")) + 
+  labs(x = "Registry Combination", y = "Count of Summary Results", fill = "Registry") +
+  scale_x_discrete(labels = c("ClinicalTrials.gov" = "EUCTR-ClinicalTrials.gov", 
+                              "DRKS" = "EUCTR-DRKS")) +
+  scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) + 
+  theme_classic() +
+  theme(legend.position = "top")
+```
+
+### Summary results - sensitivity analysis
+
+*To be replicated after **definition** of main analysis*
+
+### Recruitment status
+
+To create the data for the sankey plot, I added a source and target columns with the required values
+
+```{r message = FALSE, warning = FALSE}
+
+#create source column
+discrepancy_data <- discrepancy_data |>
+  mutate(sankey_source = paste("EUCTR", overall_recruitment_status_reg1))
+
+#create target column
+discrepancy_data <- discrepancy_data |>
+  mutate(sankey_target = case_when(
+    registry2 == "ClinicalTrials.gov" ~ paste("ClinicalTrials.gov", overall_recruitment_status_reg2),
+    registry2 == "DRKS" ~ paste("DRKS", overall_recruitment_status_reg2)
+  ))
+
+#filter data for sankey plot: 
+sankey_data <- discrepancy_data |> 
+  count(sankey_source, sankey_target)
+```
+
+```{r message = FALSE, warning = FALSE}
+
+#OPTION 1
+
+library(networkD3)
+
+#node list
+nodes <- data.frame(name = unique(c(sankey_data$sankey_source, sankey_data$sankey_target)))
+
+#links
+sankey_data$IDsource <- match(sankey_data$sankey_source, nodes$name) - 1
+sankey_data$IDtarget <- match(sankey_data$sankey_target, nodes$name) - 1
+
+links <- data.frame(source = sankey_data$IDsource,
+                    target = sankey_data$IDtarget,
+                    value = sankey_data$n)
+
+#sankey plot
+sankeyNetwork(Links = links, Nodes = nodes, 
+              Source = "source", Target = "target", 
+              Value = "value", NodeID = "name", 
+              fontSize = 12, nodeWidth = 30)
+```
+
+```{r message = FALSE, warning = FALSE}
+
+#OPTION 2
+library(highcharter)
+
+sankey_data2 <- discrepancy_data |>
+  select(registry1, registry2, 
+         overall_recruitment_status_reg1, 
+         overall_recruitment_status_reg2) |>
+  mutate(overall_recruitment_status_reg1 = paste("EUCTR", overall_recruitment_status_reg1),
+         overall_recruitment_status_reg2 = ifelse(
+           registry2 == "ClinicalTrials.gov",
+           paste("ClinicalTrials.gov", overall_recruitment_status_reg2),
+           paste("DRKS", overall_recruitment_status_reg2)
+    )) |>
+  select(-registry1, -registry2)
+  
+hchart(data_to_sankey(sankey_data2), "sankey", name = "test") |>
+  hc_title(text = "Sankey Diagram for Recruitment Status") |>
+  hc_add_theme(hc_theme_economist())
+```
+
+**Replicating results with numbers from `discrepancy_data`:**
+
+```{r message = FALSE, warning = FALSE}
+
+discrepancy_data |>
+  count(overall_recruitment_status_reg1)
+
+discrepancy_data |>
+  filter(registry2 == "ClinicalTrials.gov") |>
+  count(overall_recruitment_status_reg2)
+
+discrepancy_data |>
+  filter(registry2 == "DRKS") |>
+  count(overall_recruitment_status_reg2)
+```
+
+```{r message = FALSE, warning = FALSE}
+
+discrepancy_data |>
+  group_by(registry2) |>
+  count(overall_recruitment_status_reg1, overall_recruitment_status_reg2)
+```
+
+### Completion date
+
+```{r message = FALSE, warning = FALSE}
+
+#ClinicalTrials.gov plot
+discrepancy_data |>
+  filter(registry2 == "ClinicalTrials.gov") |>
+  filter(!is.na(completion_month_year_reg1) & !is.na(completion_month_year_reg2)) |>
+  mutate(completion_month_year_reg1 = as.Date(paste0(completion_month_year_reg1, "-01"),
+                                              format = "%Y-%m-%d"),
+         completion_month_year_reg2 = as.Date(paste0(completion_month_year_reg2, "-01"),
+                                              format = "%Y-%m-%d")) |>
+  ggplot(aes(y = trn1, 
+             x = completion_month_year_reg1,
+             xend = completion_month_year_reg2)) +
+  geom_dumbbell(color = "darkgray",  
+                size = 1,            
+                dot_guide = FALSE,   
+                size_x = 3,          
+                size_xend = 3,       
+                colour_x = "#3594cc",    
+                colour_xend = "#8cc5e3") +
+  theme_classic() +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +  
+  labs(x = "Year of completion",
+       y = "Pairs of cross-registered trials") +  
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y")
+
+#DRKS plot
+discrepancy_data |>
+  filter(registry2 == "DRKS") |>
+  filter(!is.na(completion_month_year_reg1) & !is.na(completion_month_year_reg2)) |>
+  mutate(
+    completion_month_year_reg1 = as.Date(paste0(completion_month_year_reg1, "-01"), format = "%Y-%m-%d"),
+    completion_month_year_reg2 = as.Date(paste0(completion_month_year_reg2, "-01"), format = "%Y-%m-%d")
+  ) |>
+  ggplot(aes(y = trn1, 
+             x = completion_month_year_reg1,
+             xend = completion_month_year_reg2)) +
+  geom_dumbbell(color = "darkgray",  
+                size = 1,            
+                dot_guide = FALSE,   
+                size_x = 3,          
+                size_xend = 3,       
+                colour_x = "#3594cc",    
+                colour_xend = "#8cc5e3") +
+  theme_classic() +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +  
+  labs(x = "Year of completion",
+       y = "Pairs of cross-registered trials") +  
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+```
+
+**Observations:**
+
+-   Low n makes the graph clear. EUCTR-ClinicalTrials.gov is very overcrowded.
+
+-   It would be nice to figure out a way to make pairs that match have a different color, here they just maintain the color of registry2.
+
+*Create a color object with a if statement?*
+
+```{r message = FALSE, warning = FALSE}
+
+color_x <- ifelse(discrepancy_data$completion_month_year_reg1 == discrepancy_data$completion_month_year_reg2, 
+                  "#2066a8", "#3594cc")
+
+
+color_x_end <- ifelse(discrepancy_data$completion_month_year_reg1 == discrepancy_data$completion_month_year_reg2, 
+                  "#2066a8", "#8cc5e3")
+```
+
+**Another suggestion:** make in the text of the paper a count of how many times the registries matched: EUCTR-ClinicalTrials.gov and EUCTR-DRKS. Then add these figures to analyze only cases were the dates did not match. Also account for NA cases that were excluded from analysis.
+
+```{r message = FALSE, warning = FALSE}
+
+#ClinicalTrials.gov plot
+discrepancy_data |>
+  filter(registry2 == "ClinicalTrials.gov") |>
+  filter(!is.na(completion_month_year_reg1) & !is.na(completion_month_year_reg2)) |>
+  filter(completion_month_year_reg1 != completion_month_year_reg2) |>
+  mutate(completion_month_year_reg1 = as.Date(paste0(completion_month_year_reg1, "-01"),
+                                              format = "%Y-%m-%d"),
+         completion_month_year_reg2 = as.Date(paste0(completion_month_year_reg2, "-01"),
+                                              format = "%Y-%m-%d")) |>
+  ggplot(aes(y = trn1, 
+             x = completion_month_year_reg1,
+             xend = completion_month_year_reg2)) +
+  geom_dumbbell(color = "darkgray",  
+                size = 1,            
+                dot_guide = FALSE,   
+                size_x = 3,          
+                size_xend = 3,       
+                colour_x = "#3594cc",    
+                colour_xend = "#8cc5e3") +
+  theme_classic() +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +  
+  labs(x = "Year of completion",
+       y = "Pairs of cross-registered trials") +  
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y")
+
+#DRKS plot
+discrepancy_data |>
+  filter(registry2 == "DRKS") |>
+  filter(!is.na(completion_month_year_reg1) & !is.na(completion_month_year_reg2)) |>
+  filter(completion_month_year_reg1 != completion_month_year_reg2) |>
+  mutate(
+    completion_month_year_reg1 = as.Date(paste0(completion_month_year_reg1, "-01"), format = "%Y-%m-%d"),
+    completion_month_year_reg2 = as.Date(paste0(completion_month_year_reg2, "-01"), format = "%Y-%m-%d")
+  ) |>
+  ggplot(aes(y = trn1, 
+             x = completion_month_year_reg1,
+             xend = completion_month_year_reg2)) +
+  geom_dumbbell(color = "darkgray",  
+                size = 1,            
+                dot_guide = FALSE,   
+                size_x = 3,          
+                size_xend = 3,       
+                colour_x = "#3594cc",    
+                colour_xend = "#8cc5e3") +
+  theme_classic() +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +  
+  labs(x = "Year of completion",
+       y = "Pairs of cross-registered trials") +  
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
+```
+
+**Example paragraph:**
+
+Out of the 233 true cross-registered pairs of TRN, 94 matched in completion date with same year and month (ClinicalTrials.gov = 86; DRKS = 8), 115 did not match on completion date (ClinicalTrials.gov = 109; DRKS = 6), and 24 pairs were not compared due to missing information of completion date (*these 24 are only from EUCTR*; ClinicalTrials.gov =23; DRKS = 1). Figure X. shows the difference in completion date within the 115 pairs that did not match.
+
+```{r message = FALSE, warning = FALSE}
+
+discrepancy_data |>
+  filter(registry2 == "ClinicalTrials.gov") |>
+  count(completion_month_year_reg1 == completion_month_year_reg2)
+
+discrepancy_data |>
+  filter(registry2 == "DRKS") |>
+  count(completion_month_year_reg1 == completion_month_year_reg2)
+```
