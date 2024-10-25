@@ -35,9 +35,14 @@ trn_resolves <- trn_filtered |>
   filter(trn2 != "2008-004408-29")
 
 # read in ECRIN information
-ecrin <- read_csv("data/raw/20240916_mdr_ids_euctr.csv") |>
+ecrin <- read_csv("data/20241025_mdr_identifiers.csv") |>
   rename(trn1 = iv_id,
-         trn2 = identifier)
+         trn2 = identifier) |>
+  filter(identifier_type == "Trial registry ID") |>
+  filter( identifier_source == "EU Clinical Trials Register")
+  
+
+ecrin_errors <- read_csv("data/20241025_mdr_identifiers_errors.csv")
 
 
 # Apply the function to both datasets (do NOT filter for trials that resolve in TRN)
