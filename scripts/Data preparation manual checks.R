@@ -3,6 +3,10 @@
 ## Load data ##
 data <- read.csv("~/Desktop/Research group Strech/intovalue-crossreg/data/manual_validation_dataset_raw.csv", sep = ";")
 
+## Load packages ##
+library(tidyverse)
+library(lubridate)
+
 #### RENAMING COLUMNS ####
 # Some columns had additional characters and were renamed:
 data <- data |>
