@@ -16,6 +16,7 @@ library(tidyverse)
 library(lubridate)
 library(networkD3)
 library(highcharter)
+library(ggalluvial)
 library(ggalt)
 ```
 
@@ -189,7 +190,7 @@ summary_data3 |>
   geom_bar(stat = "identity") +
   geom_text(aes(label = paste0(round(percent, 1), "%")), 
             position = position_stack(vjust = 0.5), size = 3.5) +
-  labs(x = "Summary results status", y = "Percentage") +
+  labs(x = "Summary results EUCTR - ClinicalTrials.gov", y = "Percentage") +
   scale_fill_manual(values = c("No results" = "lightgray", 
                                "Only EUCTR" = "#2066a8", 
                                "Both" = "#3594cc", 
@@ -207,7 +208,7 @@ summary_data3 |>
   geom_bar(stat = "identity") +
   geom_text(aes(label = paste0(round(percent, 1), "%")), 
             position = position_stack(vjust = 0.5), size = 3.5) +
-  labs(x = "Summary results status", y = "Percentage") +
+  labs(x = "Summary results EUCTR - DRKS", y = "Percentage") +
   scale_fill_manual(values = c("No results" = "lightgray", 
                                "Only EUCTR" = "#2066a8", 
                                "Both" = "#3594cc", 
@@ -223,6 +224,8 @@ summary_data3 |>
 *To be replicated after **definition** of main analysis*
 
 ## Recruitment status
+
+### Sankey plot version 1
 
 To create the data for the sankey plot, I added a source and target columns with the required values
 
@@ -266,6 +269,8 @@ sankeyNetwork(Links = links, Nodes = nodes,
               fontSize = 12, nodeWidth = 30)
 ```
 
+### Sankey plot version 2
+
 ```{r message = FALSE, warning = FALSE}
 
 #OPTION 2
@@ -282,7 +287,7 @@ sankey_data2 <- discrepancy_data |>
     )) |>
   select(-registry1, -registry2)
   
-hchart(data_to_sankey(sankey_data2), "sankey", name = "test") |>
+hchart(data_to_sankey(sankey_data2), "sankey", name = "Count") |>
   hc_add_theme(hc_theme_economist())
 ```
 
@@ -306,6 +311,36 @@ discrepancy_data |>
 
 discrepancy_data |>
   group_by(registry2) |>
+  count(overall_recruitment_status_reg1, overall_recruitment_status_reg2)
+```
+
+### Alluvial plot
+
+```{r message = FALSE, warning = FALSE}
+
+sankey_data2 |>
+  count(overall_recruitment_status_reg1, overall_recruitment_status_reg2) |>
+  ggplot(aes(axis1 = overall_recruitment_status_reg1, 
+             axis2 = overall_recruitment_status_reg2, y = n)) +
+  geom_alluvium(aes(fill = overall_recruitment_status_reg1), width = 0.1) +
+  geom_stratum(width = 0.2, fill = "#FAFAFA", color = "black") +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum)), size = 2.5) +
+  scale_x_discrete(limits = c("EUCTR", "Other Registry"), expand = c(0.15, 0.15)) +
+  scale_y_continuous(limits = c(0, 240), breaks = seq(0, 240, by = 20)) +
+  scale_fill_manual(values = c("#AED6E8", "#F9ACB1")) + 
+  labs(title = "Recruitment status match between EUCTR and second registry",
+       x = "Registry",
+       y = "Number of Observations") +
+  theme_classic() +
+  theme(legend.position = "none",
+        axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+```
+
+```{r message = FALSE, warning = FALSE}
+
+sankey_data2 |>
   count(overall_recruitment_status_reg1, overall_recruitment_status_reg2)
 ```
 
