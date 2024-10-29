@@ -29,6 +29,8 @@ trn_manual_checks <- read_rds("data/trn_manual_checks.rds")
 trn_filtered <- trn_manual_checks |>
   filter(priority <= 4 )
 
+trn_manual_standardized <- standardize_pairs(trn_manual_checks)
+
 # Filter TRN for EUCTR and DRKS that resolves
 trn_resolves <- trn_filtered |>
   filter(drks_removed == FALSE & euctr_id_in_euctr == TRUE) |>
@@ -137,10 +139,26 @@ unique_to_trn_df <- trn_pairs[!trn_pairs$standardized_pair %in% ecrin_pairs$stan
 unique_to_trn_df <- unique_to_trn_df |>
   mutate(unique_to_trn = 1)
 
+unique_to_ecrin_df <- unique_to_ecrin_df |>
+  mutate(unique_to_ecrin = 1)
+
 # identify unique to trn pairs in broader table
 trn_unique_flagged <- trn_standardized |>
   left_join(unique_to_trn_df, by = "standardized_pair") |>
   filter(unique_to_trn == 1)
+
+# identify unique to ECRIN pairs in broader table
+trn_manual_standardized <- trn_manual_standardized |>
+  left_join(unique_to_ecrin_df, by = "standardized_pair") |>
+  filter(unique_to_ecrin == 1)
+
+# Isolate TRN pairs we found in category 5 to see which ones we missed entirely 
+priority_5_isolated <- trn_manual_standardized |>
+  select(standardized_pair)
+
+# determine which pairs in unique to ecrin we missed entirely (not in priority 5)
+difference <- setdiff(unique_to_ecrin_df$standardized_pair, priority_5_isolated$standardized_pair)
+
 
 # Filter by first two priorities
 # trn_unique_priority_1_2 <- trn_unique_flagged |>
