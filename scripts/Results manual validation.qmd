@@ -13,7 +13,7 @@ editor: visual
 final_data <- read.csv("~/Desktop/Research group Strech/intovalue-crossreg/data/manual_validation_dataset_processed.csv", sep = ",")
 
 library(tidyverse)
-library(lubridate)
+library(patchwork)
 library(networkD3)
 library(highcharter)
 library(ggalluvial)
@@ -63,7 +63,7 @@ discrepancy_data <- final_data |>
 
 Summary results are gonna be analyzed only at the level of both registries having a completed recruitment status.
 
-### **First draft version**
+### **First draft**
 
 ```{r message = FALSE, warning = FALSE}
 
@@ -106,7 +106,7 @@ ggplot() +
   theme(legend.position = "top")
 ```
 
-### **New version**
+### **Count version (%)**
 
 ```{r message = FALSE, warning = FALSE}
 
@@ -121,12 +121,15 @@ summary_data2 <- discrepancy_data |>
     has_summary_results_reg1_main == FALSE & has_summary_results_reg2_main == TRUE ~ "Other registry"),
     result_label = factor(result_label, levels = c("Other registry", "Both", "Only EUCTR", "No results"))) |>
   group_by(registry2, result_label) |>
-  summarise(count = n()) 
+  summarise(count = n(), .groups = 'drop') |>
+  group_by(registry2) |>
+  mutate(percentage = count / sum(count) * 100) |>
+  mutate(label = paste0(count, " (", round(percentage, 1), "%)"))
 
 #plot
 ggplot(data = summary_data2, aes(x = registry2, y = count, fill = result_label)) +
   geom_bar(stat = "identity") +
-  geom_text(aes(label = count), position = position_stack(vjust = 0.5), size = 3.5) +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 3.5) +
   labs(x = "Registry combination", y = "Count of Summary Results", fill = "Results") +
   scale_fill_manual(values = c("No results" = "lightgrey", 
                                "Only EUCTR" = "#2066a8", 
@@ -141,11 +144,11 @@ ggplot(data = summary_data2, aes(x = registry2, y = count, fill = result_label))
         legend.position = "top")
 ```
 
-### **Version with percentages**
+### **Version with % on y-axis**
 
 ```{r message = FALSE, warning = FALSE}
 
-#transform count to percentage
+#prepare data
 summary_data3 <- discrepancy_data |>
   filter(overall_recruitment_status_reg1 == "Completed",
          overall_recruitment_status_reg2 == "Completed") |>
@@ -156,15 +159,16 @@ summary_data3 <- discrepancy_data |>
       has_summary_results_reg1_main == FALSE & has_summary_results_reg2_main == TRUE ~ "Other registry"),
     result_label = factor(result_label, levels = c("Other registry", "Both", "Only EUCTR", "No results"))) |>
   group_by(registry2, result_label) |>
-  summarise(count = n()) |>
+  summarise(count = n(), .groups = 'drop') |>
   group_by(registry2) |>
-  mutate(percent = count / sum(count) * 100) 
-  
+  mutate(percent = count / sum(count) * 100) |>
+  mutate(label = paste0(round(percent, 1), "% (n = ", count, ")"))  # Update label to include count
+
 #plot
 ggplot(data = summary_data3, aes(x = registry2, y = percent, fill = result_label)) +
   geom_bar(stat = "identity") +
-  geom_text(aes(label = paste0(round(percent, 1), "%")), 
-            position = position_stack(vjust = 0.5), size = 3.5) +
+  geom_text(aes(label = label), 
+            position = position_stack(vjust = 0.5), size = 3.5) +  # Use updated label
   labs(x = "Registry combination", y = "Percentage of Summary Results", fill = "Results") +
   scale_fill_manual(values = c("No results" = "lightgray", 
                                "Only EUCTR" = "#2066a8", 
@@ -221,7 +225,165 @@ summary_data3 |>
 
 ## Summary results - sensitivity analysis
 
-*To be replicated after **definition** of main analysis*
+### Count version
+
+```{r message = FALSE, warning = FALSE}
+
+#prepare data
+summary_data4 <- discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed") |>
+  mutate(result_label = case_when(
+    has_summary_results_reg1_sensitivity == FALSE & has_summary_results_reg2_sensitivity == FALSE ~ "No results",
+    has_summary_results_reg1_sensitivity == TRUE & has_summary_results_reg2_sensitivity == FALSE ~ "Only EUCTR",
+    has_summary_results_reg1_sensitivity == TRUE & has_summary_results_reg2_sensitivity == TRUE ~ "Both",
+    has_summary_results_reg1_sensitivity == FALSE & has_summary_results_reg2_sensitivity == TRUE ~ "Other registry"),
+    result_label = factor(result_label, levels = c("Other registry", "Both", "Only EUCTR", "No results"))) |>
+  group_by(registry2, result_label) |>
+  summarise(count = n(), .groups = 'drop') |>
+  group_by(registry2) |>
+  mutate(percentage = count / sum(count) * 100) |>
+  mutate(label = paste0(count, " (", round(percentage, 1), "%)"))
+
+#plot
+ggplot(data = summary_data4, aes(x = registry2, y = count, fill = result_label)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 3.5) +
+  labs(x = "Registry combination", y = "Count of Summary Results", fill = "Results") +
+  scale_fill_manual(values = c("No results" = "lightgrey", 
+                               "Only EUCTR" = "#2066a8", 
+                               "Both" = "#3594cc", 
+                               "Other registry" = "#8cc5e3")) +
+  scale_y_continuous(limits = c(0, 200), 
+                     breaks = seq(0, 200, by = 20)) +
+  scale_x_discrete(labels = c("ClinicalTrials.gov" = "EUCTR-ClinicalTrials.gov", 
+                              "DRKS" = "EUCTR-DRKS")) + 
+  theme_classic() +
+  theme(axis.text = element_text(size = 10),
+        legend.position = "top")
+```
+
+### Version with % on y-axis
+
+```{r message = FALSE, warning = FALSE}
+
+#prepare data
+summary_data5 <- discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed") |>
+  mutate(result_label = case_when(
+      has_summary_results_reg1_sensitivity == FALSE & has_summary_results_reg2_sensitivity == FALSE ~ "No results",
+      has_summary_results_reg1_sensitivity == TRUE & has_summary_results_reg2_sensitivity == FALSE ~ "Only EUCTR",
+      has_summary_results_reg1_sensitivity == TRUE & has_summary_results_reg2_sensitivity == TRUE ~ "Both",
+      has_summary_results_reg1_sensitivity == FALSE & has_summary_results_reg2_sensitivity == TRUE ~ "Other registry"),
+    result_label = factor(result_label, levels = c("Other registry", "Both", "Only EUCTR", "No results"))) |>
+  group_by(registry2, result_label) |>
+  summarise(count = n(), .groups = 'drop') |>
+  group_by(registry2) |>
+  mutate(percent = count / sum(count) * 100) |>
+  mutate(label = paste0(round(percent, 1), "% (n = ", count, ")"))  # Update label to include count
+
+#plot
+ggplot(data = summary_data5, aes(x = registry2, y = percent, fill = result_label)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = label), 
+            position = position_stack(vjust = 0.5), size = 3.5) +  # Use updated label
+  labs(x = "Registry combination", y = "Percentage of Summary Results", fill = "Results") +
+  scale_fill_manual(values = c("No results" = "lightgray", 
+                               "Only EUCTR" = "#2066a8", 
+                               "Both" = "#3594cc", 
+                               "Other registry" = "#8cc5e3")) +
+  scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) +
+  scale_x_discrete(labels = c("ClinicalTrials.gov" = "EUCTR-ClinicalTrials.gov", 
+                              "DRKS" = "EUCTR-DRKS")) +
+  theme_classic() +
+  theme(axis.text = element_text(size = 10),
+        legend.position = "top")
+```
+
+## 2-pane plot with main and sensitivity analysis
+
+### With count y-axis
+
+```{r message = FALSE, warning = FALSE}
+
+#create plot objects
+plot1 <- ggplot(data = summary_data2, aes(x = registry2, y = count, fill = result_label)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 3.5) +
+  labs(x = "Main analysis", y = "Count of Summary Results", fill = "Results") +
+  scale_fill_manual(values = c("No results" = "lightgrey", 
+                               "Only EUCTR" = "#2066a8", 
+                               "Both" = "#3594cc", 
+                               "Other registry" = "#8cc5e3")) +
+  scale_y_continuous(limits = c(0, 200), 
+                     breaks = seq(0, 200, by = 20)) +
+  scale_x_discrete(labels = c("ClinicalTrials.gov" = "EUCTR-ClinicalTrials.gov", 
+                              "DRKS" = "EUCTR-DRKS")) + 
+  theme_classic() +
+  theme(axis.text = element_text(size = 10),
+        legend.position = "none")
+
+plot2 <- ggplot(data = summary_data4, aes(x = registry2, y = count, fill = result_label)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 3.5) +
+  labs(x = "Sensitivity analysis", y = "Count of Summary Results", fill = "Results") +
+  scale_fill_manual(values = c("No results" = "lightgrey", 
+                               "Only EUCTR" = "#2066a8", 
+                               "Both" = "#3594cc", 
+                               "Other registry" = "#8cc5e3")) +
+  scale_y_continuous(limits = c(0, 200), 
+                     breaks = seq(0, 200, by = 20)) +
+  scale_x_discrete(labels = c("ClinicalTrials.gov" = "EUCTR-ClinicalTrials.gov", 
+                              "DRKS" = "EUCTR-DRKS")) + 
+  theme_classic() +
+  theme(axis.text = element_text(size = 10),
+        legend.position = "right")
+
+#combine
+combined_plot <- plot1 + plot2 + plot_layout(ncol = 2)
+print(combined_plot)
+```
+
+### With % y-axis
+
+```{r message = FALSE, warning = FALSE}
+
+plot3 <- ggplot(data = summary_data3, aes(x = registry2, y = percent, fill = result_label)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = label), 
+            position = position_stack(vjust = 0.5), size = 3.5) +  # Use updated label
+  labs(x = "Main analysis", y = "Percentage", fill = "Results") +
+  scale_fill_manual(values = c("No results" = "lightgray", 
+                               "Only EUCTR" = "#2066a8", 
+                               "Both" = "#3594cc", 
+                               "Other registry" = "#8cc5e3")) +
+  scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) +
+  scale_x_discrete(labels = c("ClinicalTrials.gov" = "EUCTR-ClinicalTrials.gov", 
+                              "DRKS" = "EUCTR-DRKS")) +
+  theme_classic() +
+  theme(axis.text = element_text(size = 10),
+        legend.position = "none")
+
+plot4 <- ggplot(data = summary_data5, aes(x = registry2, y = percent, fill = result_label)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = label), 
+            position = position_stack(vjust = 0.5), size = 3.5) +  # Use updated label
+  labs(x = "Sensitivity analysis", y = "Percentage", fill = "Results") +
+  scale_fill_manual(values = c("No results" = "lightgray", 
+                               "Only EUCTR" = "#2066a8", 
+                               "Both" = "#3594cc", 
+                               "Other registry" = "#8cc5e3")) +
+  scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) +
+  scale_x_discrete(labels = c("ClinicalTrials.gov" = "EUCTR-ClinicalTrials.gov", 
+                              "DRKS" = "EUCTR-DRKS")) +
+  theme_classic() +
+  theme(axis.text = element_text(size = 10),
+        legend.position = "right")
+  
+combined_plot2 <- plot3 + plot4 + plot_layout(ncol = 2)
+print(combined_plot2)
+```
 
 ## Recruitment status
 
@@ -346,7 +508,7 @@ sankey_data2 |>
 
 ## Completion date
 
-### Version with pairs that match in completion date
+### Version 1 (all cases)
 
 ```{r message = FALSE, warning = FALSE}
 
@@ -409,7 +571,7 @@ discrepancy_data |>
 
 **Another suggestion:** make in the text of the paper a count of how many times the registries matched: EUCTR-ClinicalTrials.gov and EUCTR-DRKS. Then add these figures to analyze only cases were the dates did not match. Also account for NA cases that were excluded from analysis.
 
-### Version with only no-match pairs
+### Version 2 (only no-match pairs)
 
 ```{r message = FALSE, warning = FALSE}
 
@@ -465,6 +627,8 @@ discrepancy_data |>
        y = "Pairs of cross-registered trials") +  
   scale_x_date(date_breaks = "1 year", date_labels = "%Y") 
 ```
+
+### Version 3 (organized by diff)
 
 **Organized by difference between `completion_month_year_reg1` and `completion_month_year_reg2` on y-axis:**
 
