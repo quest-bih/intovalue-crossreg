@@ -30,8 +30,10 @@ trn_filtered <- trn_filtered |>
 trn_filtered <- trn_filtered |>
   mutate(
     bidirectional = if_else(trn1inreg2 & trn2inreg1, TRUE, FALSE),
-    unidirectional = if_else(trn1inreg2 | trn2inreg1, TRUE, FALSE),
     non_euctr_registry = ifelse(registry1 == "EudraCT", registry2, registry1)
+  ) |>
+  mutate(
+    unidirectional = if_else((trn1inreg2 | trn2inreg1) & !bidirectional, TRUE, FALSE),
   )
 
 #########################################################################################################################
@@ -220,6 +222,15 @@ ggsave(
 )
 
 ggsave(
+  "overall_crossreg_combinations_proportions.pdf",
+  overall_crossreg_combinations_proportions,
+  scale = 1.25,
+  width = 7,
+  height = 5
+  # scale = 2
+)
+
+ggsave(
   "registry_divided_combinations.pdf",
   registry_divided_combinations,
   scale = 1.25,
@@ -238,8 +249,26 @@ ggsave(
 )
 
 ggsave(
+  "drks_crossreg_combinations_proportions.pdf",
+  drks_crossreg_combinations_proportions,
+  scale = 1.25,
+  width = 7,
+  height = 5
+  # scale = 2
+)
+
+ggsave(
   "ctgov_crossreg_combinations.pdf",
   ctgov_crossreg_combinations,
+  scale = 1.25,
+  width = 7,
+  height = 5
+  # scale = 2
+)
+
+ggsave(
+  "ctgov_crossreg_combinations_proportions.pdf",
+  ctgov_crossreg_combinations_proportions,
   scale = 1.25,
   width = 7,
   height = 5
