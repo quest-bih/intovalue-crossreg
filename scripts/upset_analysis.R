@@ -102,6 +102,70 @@ trn_combos_drks <- trn_combos |>
 trn_combos_ctgov <- trn_combos |>
   filter(non_euctr_registry == "ClinicalTrials.gov")
 
+
+# Code for Table 1
+# Table 1. Characteristics indicating potential cross-registrations, 
+# overall and by registry (prior to manual validation).  
+
+# Overall
+trn_overall_bidirectional <- trn_filtered |>
+  filter(bidirectional) |>
+  nrow()
+
+trn_overall_unidirectional <- trn_filtered |>
+  filter(unidirectional) |>
+  nrow()
+
+trn_overall_title_match <- trn_filtered |>
+  filter(is_title_matched) |>
+  nrow()
+
+trn_overall_pub <- trn_filtered |>
+  filter(at_least_one_pub) |>
+  nrow()
+
+# ClinicalTrials.gov
+trn_ct_bidirectional <- trn_filtered |>
+  filter(non_euctr_registry == "ClinicalTrials.gov") |>
+  filter(bidirectional) |>
+  nrow()
+
+trn_ct_unidirectional <- trn_filtered |>
+  filter(non_euctr_registry == "ClinicalTrials.gov") |>
+  filter(unidirectional) |>
+  nrow()
+
+trn_ct_title_matched <- trn_filtered |>
+  filter(non_euctr_registry == "ClinicalTrials.gov") |>
+  filter(is_title_matched) |>
+  nrow()
+
+trn_ct_pub <- trn_filtered |>
+  filter(non_euctr_registry == "ClinicalTrials.gov") |>
+  filter(at_least_one_pub) |>
+  nrow()
+
+# DRKS
+trn_drks_bidirectional <- trn_filtered |>
+  filter(non_euctr_registry == "DRKS") |>
+  filter(bidirectional) |>
+  nrow()
+
+trn_drks_unidirectional <- trn_filtered |>
+  filter(non_euctr_registry == "DRKS") |>
+  filter(unidirectional) |>
+  nrow()
+
+trn_drks_title_matched <- trn_filtered |>
+  filter(non_euctr_registry == "DRKS") |>
+  filter(is_title_matched) |>
+  nrow()
+
+trn_drks_pub <- trn_filtered |>
+  filter(non_euctr_registry == "DRKS") |>
+  filter(at_least_one_pub) |>
+  nrow()
+
 # Upset plot showing all TRN pairs in analysis set
 overall_crossreg_combinations <- trn_combos |>
   ggplot(aes(x=links)) +
