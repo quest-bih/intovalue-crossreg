@@ -1,7 +1,8 @@
 #### MANUAL CHECKS DATA PROCESSING SCRIPT ####
 
 ## Load data ##
-data <- read.csv("~/Desktop/Research group Strech/intovalue-crossreg/data/manual_validation_dataset_raw.csv", sep = ";")
+
+data <- read.csv(here::here("data", "manual_validation_raw.csv"), sep = ";")
 
 ## Load packages ##
 library(tidyverse)

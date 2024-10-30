@@ -10,7 +10,7 @@ editor: visual
 
 ```{r message = FALSE, warning = FALSE}
 
-final_data <- read.csv("~/Desktop/Research group Strech/intovalue-crossreg/data/manual_validation_dataset_processed.csv", sep = ",")
+final_data <- read.csv(here::here("data", "manual_validation_processed.csv"), sep = ",")
 
 library(tidyverse)
 library(patchwork)
