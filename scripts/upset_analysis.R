@@ -66,43 +66,7 @@ duplicates <- trn_filtered |>
 
 # More in depth description in Paper Outline document
 
-#########################################################################################################################
-# Continue making upset plot:
-
-# Make trn_filtered readable for ggupset package
-trn_combos <-
-  trn_filtered |>
-  select(trn1,
-         trn2,
-         non_euctr_registry,
-         is_title_matched,
-         at_least_one_pub,
-         bidirectional,
-         unidirectional
-  ) |>
-  rename(
-    "Title matched" = is_title_matched,
-    "Publication link" = at_least_one_pub,
-    "Bidirectional link" = bidirectional,
-    "Undirectional link" = unidirectional
-  ) |>
-  pivot_longer(cols = -c(trn1, trn2, non_euctr_registry), names_to = "link") |>
-  filter(value == TRUE) |>
-  group_by(trn1, trn2) |>
-  mutate(links = list(link)) |>
-  ungroup() |>
-  select(-value, -link) |>
-  distinct()
-
-# Filter for only DRKS analysis
-trn_combos_drks <- trn_combos |>
-  filter(non_euctr_registry == "DRKS")
-
-# Filter for only CTgov analysis
-trn_combos_ctgov <- trn_combos |>
-  filter(non_euctr_registry == "ClinicalTrials.gov")
-
-
+############################################################################
 # Code for Table 1
 # Table 1. Characteristics indicating potential cross-registrations, 
 # overall and by registry (prior to manual validation).  
@@ -166,10 +130,52 @@ trn_drks_pub <- trn_filtered |>
   filter(at_least_one_pub) |>
   nrow()
 
+############################################################################
+
+#########################################################################################################################
+# Continue making upset plot:
+
+# Make trn_filtered readable for ggupset package
+trn_combos <-
+  trn_filtered |>
+  select(trn1,
+         trn2,
+         non_euctr_registry,
+         is_title_matched,
+         at_least_one_pub,
+         bidirectional,
+         unidirectional
+  ) |>
+  rename(
+    "Title matched" = is_title_matched,
+    "Publication link" = at_least_one_pub,
+    "Bidirectional link" = bidirectional,
+    "Undirectional link" = unidirectional
+  ) |>
+  pivot_longer(cols = -c(trn1, trn2, non_euctr_registry), names_to = "link") |>
+  filter(value == TRUE) |>
+  group_by(trn1, trn2) |>
+  mutate(links = list(link)) |>
+  ungroup() |>
+  select(-value, -link) |>
+  distinct()
+
+# Filter for only DRKS analysis
+trn_combos_drks <- trn_combos |>
+  filter(non_euctr_registry == "DRKS")
+
+# Filter for only CTgov analysis
+trn_combos_ctgov <- trn_combos |>
+  filter(non_euctr_registry == "ClinicalTrials.gov")
+
+
+############################################################################
+
 # Upset plot showing all TRN pairs in analysis set
 overall_crossreg_combinations <- trn_combos |>
   ggplot(aes(x=links)) +
   geom_bar() +
+  ggtitle("Overall Combinations") +
   geom_text(stat='count', aes(label=after_stat(count)), vjust=-1) +
   scale_x_upset(n_intersections = 20) +
   ylab("Number of pairs") +
@@ -183,12 +189,18 @@ overall_crossreg_combinations <- trn_combos |>
 # Upset plot showing all TRN pairs as proportions
 overall_crossreg_combinations_proportions <- trn_combos |>
   ggplot(aes(x = links)) +
-  geom_bar(aes(y = after_stat(count / 625 * 100)), position = 'stack', fill = "steelblue") +  # Convert to percentage
-  geom_text(stat = 'count', aes(label = sprintf("%.1f%%", after_stat(count / 625 * 100))), vjust = -1) + # Label as percentage
+  geom_bar(aes(y = after_stat(count / 625 * 100))) +  # Set y as proportion for correct scaling
+  ggtitle("Overall Combinations Proportions") +
+  geom_text(stat = 'count', aes(y = after_stat(count / 625 * 100), label = sprintf("%.1f%%", after_stat(count / 625 * 100))), vjust = -1) + # Display as percentages
   scale_x_upset(n_intersections = 20) +
-  scale_y_continuous(limits = c(0, 50)) +
-  ylab("Proportion of pairs (%)") +
-  xlab("Linking combinations")
+  scale_y_continuous(limits = c(0, 30), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
+  ylab("Proportion of pairs (%)") +  
+  xlab("Linking combinations") +
+  theme(
+    legend.background = element_rect(color = "transparent", fill = "transparent"),
+    legend.position = c(.85, .9),
+    axis.title.y = element_text(size = 11)
+  )
 
 
 # Upset plot showing all TRN pairs in analysis set, divided by registry (not super readable yet, too much text)
@@ -206,7 +218,7 @@ registry_divided_combinations <- trn_combos |>
   ) +
   theme(
     legend.background = element_rect(color = "transparent", fill = "transparent"),
-    legend.position = c(.85, .9),
+    legend.position.inside  = c(.85, .9),
     axis.title.y = element_text(size = 11),
     # Remove all x-axis text
     axis.text.x = element_blank(),
@@ -217,6 +229,7 @@ registry_divided_combinations <- trn_combos |>
 # Upset plot of TRN pairs between DRKS and EUCTR
 drks_crossreg_combinations <- trn_combos_drks |>
   ggplot(aes(x=links)) +
+  ggtitle("DRKS Combinations") +
   geom_bar() +
   geom_text(stat='count', aes(label=after_stat(count)), vjust=-1) +
   scale_x_upset(n_intersections = 20) +
@@ -231,18 +244,24 @@ drks_crossreg_combinations <- trn_combos_drks |>
 #  Upset plot of TRN pairs between DRKS and EUCTR (Proportions instead of counts)
 drks_crossreg_combinations_proportions <- trn_combos_drks |>
   ggplot(aes(x = links)) +
-  geom_bar(aes(y = after_stat(count / 62 * 100)), position = 'stack', fill = "steelblue") +  # Convert to percentage
-  geom_text(stat = 'count', aes(label = sprintf("%.1f%%", after_stat(count / 62 * 100))), vjust = -1) + # Label as percentage
+  geom_bar(aes(y = after_stat(count / 62 * 100))) +  # Set y as proportion for correct scaling
+  ggtitle("DRKS Combinations Proportions") +
+  geom_text(stat = 'count', aes(y = after_stat(count / 62 * 100), label = sprintf("%.1f%%", after_stat(count / 62 * 100))), vjust = -1) + # Display as percentages
   scale_x_upset(n_intersections = 20) +
-  scale_y_continuous(limits = c(0, 50)) +
-  ylab("Proportion of pairs (%)") +
-  xlab("Linking combinations")
-
+  scale_y_continuous(limits = c(0, 50), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
+  ylab("Proportion of pairs (%)") +  
+  xlab("Linking combinations") +
+  theme(
+    legend.background = element_rect(color = "transparent", fill = "transparent"),
+    legend.position = c(.85, .9),
+    axis.title.y = element_text(size = 11)
+  ) 
 
 # Upset plot of TRN pairs between CTgov and EUCTR
 ctgov_crossreg_combinations <- trn_combos_ctgov |>
   ggplot(aes(x=links)) +
   geom_bar() +
+  ggtitle("ClinicalTrials.gov Combinations") +
   geom_text(stat='count', aes(label=after_stat(count)), vjust=-1) +
   scale_x_upset(n_intersections = 20) +
   ylab("Number of pairs") +
@@ -256,12 +275,18 @@ ctgov_crossreg_combinations <- trn_combos_ctgov |>
 # Upset plot of TRN pairs between CT and EUCTR (Proportions instead of counts)
 ctgov_crossreg_combinations_proportions <- trn_combos_ctgov |>
   ggplot(aes(x = links)) +
-  geom_bar(aes(y = after_stat(count / 563 * 100)), position = 'stack', fill = "steelblue") +  # Convert to percentage
-  geom_text(stat = 'count', aes(label = sprintf("%.1f%%", after_stat(count / 563 * 100))), vjust = -1) + # Label as percentage
+  geom_bar(aes(y = after_stat(count / 563 * 100))) +  # Set y as proportion for correct scaling
+  ggtitle("ClinicalTrials.gov Combinations Proportions") +
+  geom_text(stat = 'count', aes(y = after_stat(count / 563 * 100), label = sprintf("%.1f%%", after_stat(count / 563 * 100))), vjust = -1) + # Display as percentages
   scale_x_upset(n_intersections = 20) +
-  scale_y_continuous(limits = c(0, 50)) +
-  ylab("Proportion of pairs (%)") +
-  xlab("Linking combinations")
+  scale_y_continuous(limits = c(0, 40), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
+  ylab("Proportion of pairs (%)") +  
+  xlab("Linking combinations") +
+  theme(
+    legend.background = element_rect(color = "transparent", fill = "transparent"),
+    legend.position = c(.85, .9),
+    axis.title.y = element_text(size = 11)
+  ) 
 
 # # Move y axis label closer to plot
 # # Thanks to https://stackoverflow.com/questions/68593982
