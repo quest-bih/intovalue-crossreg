@@ -271,5 +271,4 @@ if (setequal(data_transformed$has_summary_results_reg2_sensitivity, drks_ctgov_d
 joined_data <- bind_rows(euctr_data, data_transformed)
 
 ### EXPORT FINAL DATASET
-write.csv(joined_data, "~/Desktop/Research group Strech/intovalue-crossreg/data/manual_validation_processed.csv",
-          row.names = FALSE)
+write.csv(joined_data, here::here("data", "manual_validation_processed.csv"), row.names = FALSE)
