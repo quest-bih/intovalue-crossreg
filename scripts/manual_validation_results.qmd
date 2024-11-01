@@ -695,6 +695,53 @@ combined_plot2 <- plot3 + plot4 + plot_layout(ncol = 2)
 print(combined_plot2)
 ```
 
+```{r message = FALSE, warning = FALSE}
+
+#plot EUCTR-ClinicalTrials.gov
+plot_clinicaltrials <- ggplot(
+  data = bind_rows(
+    summary_data3 %>% filter(registry2 == "ClinicalTrials.gov") %>% mutate(analysis_type = "Main"),
+    summary_data5 %>% filter(registry2 == "ClinicalTrials.gov") %>% mutate(analysis_type = "Sensitivity")
+  ),
+  aes(x = analysis_type, y = percent, fill = result_label)
+) +
+  geom_bar(stat = "identity", position = "stack") +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 3.5) +
+  labs(x = "EUCTR - ClinicalTrials.gov", y = "Percentage", fill = "Results") +
+  scale_fill_manual(values = c("No results" = "lightgray", 
+                               "Only EUCTR" = "#2066a8", 
+                               "Both" = "#3594cc", 
+                               "Other registry" = "#8cc5e3")) +
+  scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) +
+  theme_classic() +
+  theme(axis.text = element_text(size = 10),
+        legend.position = "left")
+
+#plot EUCTR-DRKS
+plot_drks <- ggplot(
+  data = bind_rows(
+    summary_data3 %>% filter(registry2 == "DRKS") %>% mutate(analysis_type = "Main"),
+    summary_data5 %>% filter(registry2 == "DRKS") %>% mutate(analysis_type = "Sensitivity")
+  ),
+  aes(x = analysis_type, y = percent, fill = result_label)
+) +
+  geom_bar(stat = "identity", position = "stack") +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 3.5) +
+  labs(x = "EUCTR - DRKS", y = "Percentage", fill = "Results") +
+  scale_fill_manual(values = c("No results" = "lightgray", 
+                               "Only EUCTR" = "#2066a8", 
+                               "Both" = "#3594cc", 
+                               "Other registry" = "#8cc5e3")) +
+  scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) +
+  theme_classic() +
+  theme(axis.text = element_text(size = 10),
+        legend.position = "none")
+
+#combine plots
+combined_plot2 <- plot_clinicaltrials + plot_drks + plot_layout(ncol = 2)
+print(combined_plot2)
+```
+
 ## Recruitment status
 
 ### Sankey plot version 1
