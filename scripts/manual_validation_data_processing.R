@@ -15,9 +15,21 @@ data <- data |>
          has_summary_results_reg1_sensitivity = has_summary_results_reg1._sensitivity,
          has_summary_results_reg2_sensitivity = has_summary_results_reg2._sensitivity)
 
+#### CORRECTING INVALID DATE ####
+# After analyzing missing data in both completion_month_year_reg1 and completion_month_year_reg2
+# one case in completion_month_year_reg2 was identified as a error in recording: 2012-04-31, April only has 30 days. 
+# the correct day on the registry is 2012-04, and per protocol we assigned the last day of the month for cases where
+# only year and month was recorded. The value should be then replaced with 2012-04-30
+
+#identify row index of the invalid date
+row_index <- which(data$completion_date_reg2 == "2012-04-31")
+
+#replace value with new one
+data$completion_date_reg2[row_index] <- "2012-04-30"
+
 #### CREATING COMPLETION MONTH-YEAR COLUMNS ####
-#for a discrepancy analysis, the decision was to compare completion date between registries at the level of year-month, excluding the day. 
-#two columns extracted this information for the future analysis.
+# For a discrepancy analysis, the decision was to compare completion date between registries at the level of year-month, excluding the day. 
+# two columns extracted this information for the future analysis.
 
 data <- data |>
   mutate(
@@ -32,7 +44,7 @@ data <- data |>
 # and that registry2 shows either ClinicalTrials.gov or DRKS. For this, all the columns that refer to the registries will 
 # also have to be flipped.
 
-#Columns that need to be modified: 
+# Columns that need to be modified: 
 # trn1, trn2, registry1, registry2, completion_date_reg1, completion_date_type_reg1, completion_month_year_reg1, completion_month_year_reg2,
 # completion_date_type_reg2, completion_month_year_reg2, completion_month_year_reg2, recruitment_status_reg1, overall_recruitment_status_reg1,
 # recruitment_status_reg2, overall_recruitment_status_reg2, has_summary_results_reg1_main, has_summary_results_reg1_sensitivity,
@@ -258,7 +270,6 @@ if (setequal(data_transformed$has_summary_results_reg2_sensitivity, drks_ctgov_d
 #### RE-JOINING FINAL DATASET FOR ANALYSIS ####
 joined_data <- bind_rows(euctr_data, data_transformed)
 
-
 ### EXPORT FINAL DATASET
-write.csv(joined_data, "~/Desktop/Research group Strech/intovalue-crossreg/data/manual_validation_dataset_processed.csv",
+write.csv(joined_data, "~/Desktop/Research group Strech/intovalue-crossreg/data/manual_validation_processed.csv",
           row.names = FALSE)
