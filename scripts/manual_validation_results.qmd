@@ -335,7 +335,24 @@ discrepancy_data |>
 
 ```{r message = FALSE, warning = FALSE}
 
+#for all cases
 discrepancy_data |>
+  filter(!is.na(completion_month_year_reg1)) |>
+  mutate(
+    completion_month_year_reg1 = ymd(paste0(completion_month_year_reg1, "-01")),
+    completion_month_year_reg2 = ymd(paste0(completion_month_year_reg2, "-01")),
+    month_difference = abs(interval(completion_month_year_reg1, 
+                                    completion_month_year_reg2) / months(1))
+    ) |>
+  summarize(min_difference = min(month_difference, na.rm = TRUE),  
+            max_difference = max(month_difference, na.rm = TRUE),
+            median_difference = median(month_difference, na.rm = TRUE),  
+            mean_difference = mean(month_difference, na.rm = TRUE),      
+            sd_difference = sd(month_difference, na.rm = TRUE))
+
+#for only discrepant cases
+discrepancy_data |>
+  filter(completion_month_year_reg1 != completion_month_year_reg2) |>
   filter(!is.na(completion_month_year_reg1)) |>
   mutate(
     completion_month_year_reg1 = ymd(paste0(completion_month_year_reg1, "-01")),
