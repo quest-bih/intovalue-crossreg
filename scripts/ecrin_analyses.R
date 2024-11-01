@@ -42,6 +42,16 @@ ecrin <- read_csv("data/20241025_mdr_identifiers.csv") |>
          trn2 = identifier) |>
   filter(identifier_type == "Trial registry ID") |>
   filter( identifier_source == "EU Clinical Trials Register")
+
+# num of distinct EUCTR trials
+euctr_distinct <- ecrin |>
+  select(trn2) |>
+  distinct()
+
+# num of distinct IV trials
+iv_distinct <- ecrin |>
+  select(trn1) |>
+  distinct()
   
 
 ecrin_errors <- read_csv("data/20241025_mdr_identifiers_errors.csv")
