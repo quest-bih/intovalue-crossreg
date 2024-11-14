@@ -12,7 +12,7 @@ library(ggupset)
 library(ggplot2)
 
 # Read in manual checks table, filter out everything w/ priority more than 4 and non-resolving or removed TRNs
-trn_manual_checks = read_rds("data/trn_manual_checks.rds")
+trn_manual_checks = read_rds("data/crossreg_pipeline_output.rds")
 
 trn_filtered <- trn_manual_checks |>
   filter(priority <= 4) |>

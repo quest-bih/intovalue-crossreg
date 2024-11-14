@@ -25,7 +25,7 @@ standardize_pairs <- function(df) {
 
 
 # Load TRN manual checks first
-trn_manual_checks <- read_rds("data/trn_manual_checks.rds")
+trn_manual_checks <- read_rds("data/crossreg_pipeline_output.rds")
 trn_filtered <- trn_manual_checks |>
   filter(priority <= 4 )
 

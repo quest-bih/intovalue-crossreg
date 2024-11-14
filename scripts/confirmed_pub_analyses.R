@@ -8,9 +8,9 @@ library(stringr)
 library(ctregistries)
 library(cli)
 
-# Load data (downloaded Elisa's manual validation table from her branch manually and saved it locally, could change later)
-manual_validation <- read.csv("/Users/lucianofernandez/Desktop/manual_validation_processed.csv")
-trn_manual_checks <- read_rds("data/trn_manual_checks.rds")
+# Load data 
+manual_validation <- read.csv("data/manual_validation_processed.csv")
+trn_manual_checks <- read_rds("data/crossreg_pipeline_output.rds")
 
 # Function to standardize trial pairs, give them unique identifier
 standardize_pairs <- function(df) {
