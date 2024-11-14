@@ -152,10 +152,10 @@ manual_validation <- read.csv("data/manual_validation_processed.csv") |>
 
 # Filter for all validated, true crossregs between CT and EUCTR
 ct_euctr_confirmed <- trn_filtered |>
-  standardize_pairs() |>
-  filter(non_euctr_registry == "ClinicalTrials.gov") |>
-  left_join(manual_validation, by = "standardized_pair") |>
-  filter(is_true_crossreg)
+  #standardize_pairs() |>
+  filter(non_euctr_registry == "ClinicalTrials.gov") 
+#  left_join(manual_validation, by = "standardized_pair") |>
+  #filter(is_true_crossreg)
 
 # Count how many EUCTR trials mention the corresponding CT number in their registry
 ct_euctr_mention_count <- sum(
@@ -181,10 +181,10 @@ ct_euctr_title_match_percentage <- (ct_euctr_title_match_count/ nrow(ct_euctr_co
 
 # Filter for all validated, true crossregs between DRKS and EUCTR
 drks_euctr_confirmed <- trn_filtered |>
-  standardize_pairs() |>
-  filter(non_euctr_registry == "DRKS") |>
-  left_join(manual_validation, by = "standardized_pair") |>
-  filter(is_true_crossreg)
+#  standardize_pairs() |>
+  filter(non_euctr_registry == "DRKS") 
+#  left_join(manual_validation, by = "standardized_pair") |>
+#  filter(is_true_crossreg)
 
 # Count how many EUCTR trials mention the corresponding DRKS number in their registry
 drks_euctr_mention_count <- sum(
