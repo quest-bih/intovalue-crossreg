@@ -130,7 +130,84 @@ trn_drks_pub <- trn_filtered |>
   filter(at_least_one_pub) |>
   nrow()
 
-############################################################################
+#########################################################################################################################
+# Code to determine % of cross-reg matches that provide information on the other registry in one registry 
+
+# Function to standardize trial pairs, give them unique identifier
+standardize_pairs <- function(df) {
+  df |>
+    rowwise() |>
+    mutate(
+      # Sort trial_id_1 and trial_id_2 alphabetically within each row to handle the order issue
+      standardized_pair = paste(sort(c(trn1, trn2)), collapse = "_")
+    ) |>
+    ungroup()
+}
+
+# Read in confirmed crossregs, standardize pairs so we can merge with larger table
+manual_validation <- read.csv("data/manual_validation_processed.csv") |>
+  filter(is_true_crossreg) |>
+  standardize_pairs() |>
+  select(standardized_pair, is_true_crossreg)
+
+# Filter for all validated, true crossregs between CT and EUCTR
+ct_euctr_confirmed <- trn_filtered |>
+  standardize_pairs() |>
+  filter(non_euctr_registry == "ClinicalTrials.gov") |>
+  left_join(manual_validation, by = "standardized_pair") |>
+  filter(is_true_crossreg)
+
+# Count how many EUCTR trials mention the corresponding CT number in their registry
+ct_euctr_mention_count <- sum(
+  (ct_euctr_confirmed$registry1 == "EudraCT" & ct_euctr_confirmed$trn2inreg1 == TRUE) |
+    (ct_euctr_confirmed$registry2 == "EudraCT" & ct_euctr_confirmed$trn1inreg2 == TRUE)
+)
+
+ct_euctr_mention_percentage <- (ct_euctr_mention_count / nrow(ct_euctr_confirmed) ) * 100
+
+# Count how many CT trials mention the corresponding EUCTR number in their registry
+euctr_ct_mention_count <- sum(
+  (ct_euctr_confirmed$registry1 == "ClinicalTrials.gov" & ct_euctr_confirmed$trn2inreg1 == TRUE) |
+    (ct_euctr_confirmed$registry2 == "ClinicalTrials.gov" & ct_euctr_confirmed$trn1inreg2 == TRUE)
+)
+
+euctr_ct_mention_percentage <- (euctr_ct_mention_count / nrow(ct_euctr_confirmed) ) * 100
+
+# Count how many match on title
+ct_euctr_title_match_count <- sum(replace_na(ct_euctr_confirmed$is_title_matched, FALSE))
+
+ct_euctr_title_match_percentage <- (ct_euctr_title_match_count/ nrow(ct_euctr_confirmed) ) * 100
+
+
+# Filter for all validated, true crossregs between DRKS and EUCTR
+drks_euctr_confirmed <- trn_filtered |>
+  standardize_pairs() |>
+  filter(non_euctr_registry == "DRKS") |>
+  left_join(manual_validation, by = "standardized_pair") |>
+  filter(is_true_crossreg)
+
+# Count how many EUCTR trials mention the corresponding DRKS number in their registry
+drks_euctr_mention_count <- sum(
+  (drks_euctr_confirmed$registry1 == "EudraCT" & drks_euctr_confirmed$trn2inreg1 == TRUE) |
+    (drks_euctr_confirmed$registry2 == "EudraCT" & drks_euctr_confirmed$trn1inreg2 == TRUE)
+)
+
+drks_euctr_mention_percentage <- (drks_euctr_mention_count / nrow(drks_euctr_confirmed) ) * 100
+
+# Count how many DRKS trials mention the corresponding EUCTR number in their registry
+euctr_drks_mention_count <- sum(
+  (drks_euctr_confirmed$registry1 == "DRKS" & drks_euctr_confirmed$trn2inreg1 == TRUE) |
+    (drks_euctr_confirmed$registry2 == "DRKS" & drks_euctr_confirmed$trn1inreg2 == TRUE)
+)
+
+euctr_drks_mention_percentage <- (euctr_drks_mention_count / nrow(drks_euctr_confirmed) ) * 100
+
+# Count how many match on title
+drks_euctr_title_match_count <- sum(replace_na(drks_euctr_confirmed$is_title_matched, FALSE))
+
+drks_euctr_title_match_percentage <- (drks_euctr_title_match_count/ nrow(drks_euctr_confirmed) ) * 100
+
+
 
 #########################################################################################################################
 # Continue making upset plot:
@@ -167,6 +244,8 @@ trn_combos_drks <- trn_combos |>
 # Filter for only CTgov analysis
 trn_combos_ctgov <- trn_combos |>
   filter(non_euctr_registry == "ClinicalTrials.gov")
+
+
 
 
 ############################################################################
