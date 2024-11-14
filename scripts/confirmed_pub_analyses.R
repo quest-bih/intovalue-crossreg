@@ -7,6 +7,8 @@ library(fs)
 library(stringr)
 library(ctregistries)
 library(cli)
+library(ggupset)
+library(ggplot2)
 
 # Load data 
 manual_validation <- read.csv("data/manual_validation_processed.csv")
@@ -51,3 +53,66 @@ pub_si <- pub_crossregs |>
 # Filter for trials linked by abstract mention
 pub_abs <- pub_crossregs |>
   filter(trn1_in_pub_abs | trn2_in_pub_abs)
+################################################################################
+# Investigate how false positive cross-registrations are connected ( 8/9 false positives are Category 4, so this will be investigated here)
+
+# Filter for false cross-registrations
+false_crossreg_standardized <- manual_validation |>
+  filter(!is_true_crossreg) |>
+  standardize_pairs() |>
+  select(standardized_pair, is_true_crossreg)
+
+# Join true crossreg with larger table by standardized_pair
+false_crossreg <- false_crossreg_standardized |>
+  left_join(trn_manual_checks_standardized, by = "standardized_pair") |>
+  filter(!is_true_crossreg & priority == 4)
+
+# Visual inspection of table shows that all 8 are only connected by trn2_in_pub_ft
+# In this case, 8 EUCTR numbers were mentioned in the full text of publications associated with 8 IntoValue TRNs
+
+################################################################################
+# Upset plot for trials linked by publication
+
+
+#Change format to make friendlier for ggupset
+upset_pub_crossregs <-
+  pub_crossregs |>
+  select(trn1,
+         trn2,
+         trn1_in_pub_si,
+         trn2_in_pub_si,
+         trn1_in_pub_abs,
+         trn2_in_pub_abs,
+         trn1_in_pub_ft,
+         trn2_in_pub_ft
+  ) |>
+  rename(
+    "trn1 in SI" = trn1_in_pub_si,
+    "trn2 in SI" =  trn2_in_pub_si,
+    "trn1 in abstract" = trn1_in_pub_abs,
+    "trn2 in abstract" = trn2_in_pub_abs,
+    "trn1 in full text" = trn1_in_pub_ft,
+    "trn2 in full text" = trn2_in_pub_ft
+  ) |>
+  pivot_longer(cols = -c(trn1, trn2), names_to = "link") |>
+  filter(value == TRUE) |>
+  group_by(trn1, trn2) |>
+  mutate(links = list(link)) |>
+  ungroup() |>
+  select(-value, -link) |>
+  distinct()
+
+# Plot upset
+pub_linking_combinations <- upset_pub_crossregs |>
+  ggplot(aes(x=links)) +
+  geom_bar() +
+  ggtitle("Overall Combinations") +
+  geom_text(stat='count', aes(label=after_stat(count)), vjust=-1) +
+  scale_x_upset(n_intersections = 20) +
+  ylab("Number of pairs") +
+  xlab("Linking combinations") +
+  theme(
+    legend.background = element_rect(color = "transparent", fill = "transparent"),
+    legend.position.inside = c(.85, .9),
+    axis.title.y = element_text(size = 11)
+  )
