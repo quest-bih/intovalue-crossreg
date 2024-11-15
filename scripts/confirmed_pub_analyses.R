@@ -36,11 +36,25 @@ trn_manual_checks_standardized <- standardize_pairs(trn_manual_checks)
 # Join true crossreg with larger table by standardized_pair
 confirmed_crossreg <- confirmed_crossreg_standardized |>
   left_join(trn_manual_checks_standardized, by = "standardized_pair") |>
+  mutate(is_true_crossreg = ifelse(standardized_pair == "2010-023688-16_NCT01326767", TRUE, is_true_crossreg))|> # Manually change is_true_crossreg back to TRUE for row "2010-023688-16_NCT01326767", not sure why it changes at all
   filter(is_true_crossreg)
 
 # Filter for trials linked by publication in any way
 pub_crossregs <- confirmed_crossreg |>
-  filter(at_least_one_pub)
+  filter(at_least_one_pub) |>
+  mutate(
+    trn1_in_pub_abs = replace_na(trn1_in_pub_abs, FALSE),
+    trn2_in_pub_abs = replace_na(trn2_in_pub_abs, FALSE),
+    trn_in_pub_abs = trn1_in_pub_abs | trn2_in_pub_abs,
+    
+    trn1_in_pub_si = replace_na(trn1_in_pub_si, FALSE),
+    trn2_in_pub_si = replace_na(trn2_in_pub_si, FALSE),
+    trn_in_pub_si = trn1_in_pub_si | trn2_in_pub_si,
+    
+    trn1_in_pub_ft = replace_na(trn1_in_pub_ft, FALSE),
+    trn2_in_pub_ft = replace_na(trn2_in_pub_ft, FALSE),
+    trn_in_pub_ft = trn1_in_pub_ft | trn2_in_pub_ft
+  )
 
 # Filter for trials linked by FT mention
 pub_ft <- pub_crossregs |>
@@ -79,20 +93,14 @@ upset_pub_crossregs <-
   pub_crossregs |>
   select(trn1,
          trn2,
-         trn1_in_pub_si,
-         trn2_in_pub_si,
-         trn1_in_pub_abs,
-         trn2_in_pub_abs,
-         trn1_in_pub_ft,
-         trn2_in_pub_ft
+         trn_in_pub_si,
+         trn_in_pub_abs,
+         trn_in_pub_ft,
   ) |>
   rename(
-    "trn1 in SI" = trn1_in_pub_si,
-    "trn2 in SI" =  trn2_in_pub_si,
-    "trn1 in abstract" = trn1_in_pub_abs,
-    "trn2 in abstract" = trn2_in_pub_abs,
-    "trn1 in full text" = trn1_in_pub_ft,
-    "trn2 in full text" = trn2_in_pub_ft
+    "trn in SI" = trn_in_pub_si,
+    "trn in abstract" = trn_in_pub_abs,
+    "trn in full text" = trn_in_pub_ft,
   ) |>
   pivot_longer(cols = -c(trn1, trn2), names_to = "link") |>
   filter(value == TRUE) |>
