@@ -25,6 +25,25 @@ trn_filtered <- trn_filtered |>
   mutate(registry1 = which_registry(trn1),
          registry2 = which_registry(trn2))
 
+# Function to standardize trial pairs, give them unique identifier
+standardize_pairs <- function(df) {
+  df |>
+    rowwise() |>
+    mutate(
+      # Sort trial_id_1 and trial_id_2 alphabetically within each row to handle the order issue
+      standardized_pair = paste(sort(c(trn1, trn2)), collapse = "_")
+    ) |>
+    ungroup()
+}
+
+# Read in confirmed crossregs, standardize pairs so we can merge with larger table
+manual_validation <- read.csv("data/manual_validation_processed.csv") |>
+  filter(is_true_crossreg) |>
+  standardize_pairs() |>
+  select(standardized_pair, is_true_crossreg)
+
+trn_filtered <- standardize_pairs(trn_filtered)
+
 # Add columns to simplify identifying bidirectional/unidirectional linking, make upset plot easier to build
 # Add column to identify non-EUCTR registry
 trn_filtered <- trn_filtered |>
@@ -35,6 +54,12 @@ trn_filtered <- trn_filtered |>
   mutate(
     unidirectional = if_else((trn1inreg2 | trn2inreg1) & !bidirectional, TRUE, FALSE),
   )
+
+# Full table containing only true, validated crossregs for another upset plot
+validated_crossreg <- trn_filtered |>
+  left_join(manual_validation, by = "standardized_pair") |> 
+  mutate(is_true_crossreg = ifelse(standardized_pair == "2010-023688-16_NCT01326767", TRUE, is_true_crossreg))|> # Manually change is_true_crossreg back to TRUE for row "2010-023688-16_NCT01326767", not sure why it changes at all
+  filter(is_true_crossreg)
 
 #########################################################################################################################
 # Count and analyze how many cross-registrations are in all 3 registrations (informal) analysis
@@ -133,24 +158,7 @@ trn_drks_pub <- trn_filtered |>
 #########################################################################################################################
 # Code to determine % of cross-reg matches that provide information on the other registry in one registry 
 
-# Function to standardize trial pairs, give them unique identifier
-standardize_pairs <- function(df) {
-  df |>
-    rowwise() |>
-    mutate(
-      # Sort trial_id_1 and trial_id_2 alphabetically within each row to handle the order issue
-      standardized_pair = paste(sort(c(trn1, trn2)), collapse = "_")
-    ) |>
-    ungroup()
-}
-
-# Read in confirmed crossregs, standardize pairs so we can merge with larger table
-manual_validation <- read.csv("data/manual_validation_processed.csv") |>
-  filter(is_true_crossreg) |>
-  standardize_pairs() |>
-  select(standardized_pair, is_true_crossreg)
-
-# Filter for all validated, true crossregs between CT and EUCTR
+# Filter for crossregs between CT and EUCTR
 ct_euctr_confirmed <- trn_filtered |>
   #standardize_pairs() |>
   filter(non_euctr_registry == "ClinicalTrials.gov") 
@@ -179,7 +187,7 @@ ct_euctr_title_match_count <- sum(replace_na(ct_euctr_confirmed$is_title_matched
 ct_euctr_title_match_percentage <- (ct_euctr_title_match_count/ nrow(ct_euctr_confirmed) ) * 100
 
 
-# Filter for all validated, true crossregs between DRKS and EUCTR
+# Filter for crossregs between DRKS and EUCTR
 drks_euctr_confirmed <- trn_filtered |>
 #  standardize_pairs() |>
   filter(non_euctr_registry == "DRKS") 
@@ -215,6 +223,31 @@ drks_euctr_title_match_percentage <- (drks_euctr_title_match_count/ nrow(drks_eu
 # Make trn_filtered readable for ggupset package
 trn_combos <-
   trn_filtered |>
+  select(trn1,
+         trn2,
+         non_euctr_registry,
+         is_title_matched,
+         at_least_one_pub,
+         bidirectional,
+         unidirectional
+  ) |>
+  rename(
+    "Title matched" = is_title_matched,
+    "Publication link" = at_least_one_pub,
+    "Bidirectional link" = bidirectional,
+    "Undirectional link" = unidirectional
+  ) |>
+  pivot_longer(cols = -c(trn1, trn2, non_euctr_registry), names_to = "link") |>
+  filter(value == TRUE) |>
+  group_by(trn1, trn2) |>
+  mutate(links = list(link)) |>
+  ungroup() |>
+  select(-value, -link) |>
+  distinct()
+
+# Make validated_crossreg readable for ggupset package 
+
+upset_validated_crossreg <- validated_crossreg |>
   select(trn1,
          trn2,
          non_euctr_registry,
@@ -281,6 +314,21 @@ overall_crossreg_combinations_proportions <- trn_combos |>
     axis.title.y = element_text(size = 11)
   )
 
+# Upset plot showing all validated, TRUE TRN pairs as proportions
+validated_crossreg_combinations_proportions <- upset_validated_crossreg |>
+  ggplot(aes(x = links)) +
+  geom_bar(aes(y = after_stat(count / 233 * 100))) +  # Set y as proportion for correct scaling
+  ggtitle("Validated and True Crossreg Combinations Proportions") +
+  geom_text(stat = 'count', aes(y = after_stat(count / 233 * 100), label = sprintf("%.1f%%", after_stat(count / 233 * 100))), vjust = -1) + # Display as percentages
+  scale_x_upset(n_intersections = 20) +
+  scale_y_continuous(limits = c(0, 30), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
+  ylab("Proportion of pairs (%)") +  
+  xlab("Linking combinations") +
+  theme(
+    legend.background = element_rect(color = "transparent", fill = "transparent"),
+    legend.position = c(.85, .9),
+    axis.title.y = element_text(size = 11)
+  )
 
 # Upset plot showing all TRN pairs in analysis set, divided by registry (not super readable yet, too much text)
 registry_divided_combinations <- trn_combos |>
