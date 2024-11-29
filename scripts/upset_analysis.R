@@ -10,6 +10,9 @@ library(ctregistries)
 library(cli)
 library(ggupset)
 library(ggplot2)
+library(VennDiagram)
+library(ggvenn)
+
 
 # Read in manual checks table, filter out everything w/ priority more than 4 and non-resolving or removed TRNs
 trn_manual_checks = read_rds("data/crossreg_pipeline_output.rds")
@@ -159,61 +162,102 @@ trn_drks_pub <- trn_filtered |>
 # Code to determine % of cross-reg matches that provide information on the other registry in one registry 
 
 # Filter for crossregs between CT and EUCTR
-ct_euctr_confirmed <- trn_filtered |>
+ct_euctr_reg_linked <- trn_filtered |>
   #standardize_pairs() |>
-  filter(non_euctr_registry == "ClinicalTrials.gov") 
+  filter(non_euctr_registry == "ClinicalTrials.gov") |>
+  filter(unidirectional | bidirectional)
 #  left_join(manual_validation, by = "standardized_pair") |>
   #filter(is_true_crossreg)
 
 # Count how many EUCTR trials mention the corresponding CT number in their registry
-ct_euctr_mention_count <- sum(
-  (ct_euctr_confirmed$registry1 == "EudraCT" & ct_euctr_confirmed$trn2inreg1 == TRUE) |
-    (ct_euctr_confirmed$registry2 == "EudraCT" & ct_euctr_confirmed$trn1inreg2 == TRUE)
-)
-
-ct_euctr_mention_percentage <- (ct_euctr_mention_count / nrow(ct_euctr_confirmed) ) * 100
+ct_euctr_mention <- ct_euctr_reg_linked |>
+  filter((registry1 == "EudraCT" & trn2inreg1 == TRUE) | (registry2 == "EudraCT" & trn1inreg2 == TRUE)) |>
+  select(standardized_pair)
 
 # Count how many CT trials mention the corresponding EUCTR number in their registry
-euctr_ct_mention_count <- sum(
-  (ct_euctr_confirmed$registry1 == "ClinicalTrials.gov" & ct_euctr_confirmed$trn2inreg1 == TRUE) |
-    (ct_euctr_confirmed$registry2 == "ClinicalTrials.gov" & ct_euctr_confirmed$trn1inreg2 == TRUE)
-)
 
-euctr_ct_mention_percentage <- (euctr_ct_mention_count / nrow(ct_euctr_confirmed) ) * 100
+euctr_ct_mention <- ct_euctr_reg_linked |>
+  filter((registry1 == "ClinicalTrials.gov" & trn2inreg1 == TRUE) | (registry2 == "ClinicalTrials.gov" & trn1inreg2 == TRUE)) |>
+  select(standardized_pair)
 
 # Count how many match on title
-ct_euctr_title_match_count <- sum(replace_na(ct_euctr_confirmed$is_title_matched, FALSE))
+ct_euctr_title_match_count <- sum(replace_na(ct_euctr_reg_linked$is_title_matched, FALSE))
 
-ct_euctr_title_match_percentage <- (ct_euctr_title_match_count/ nrow(ct_euctr_confirmed) ) * 100
+ct_euctr_title_match_percentage <- (ct_euctr_title_match_count/ nrow(ct_euctr_reg_linked) ) * 100
+
+
+# Create the Venn Diagram
+ct_euctr_venn <- list(
+  "CT Number mentioned in EUCTR" = ct_euctr_mention$standardized_pair,
+  "EUCTR Number mentioned in CT" = euctr_ct_mention$standardized_pair
+)
+
+base_ct_euctr_venn <- ggvenn(
+  ct_euctr_venn,
+  fill_color = c("#0073C2FF", "#EFC000FF"),
+  stroke_size = 0.5,
+  set_name_size = 0 # Turn off default labels for custom handling
+)
+
+# Add custom labels with text boxes
+base_ct_euctr_venn +
+  annotate("label", x = -1.2, y = 1.1, label = "CT Number mentioned in EUCTR",
+           fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) +
+  annotate("label", x = 1.2, y = 1.1, label = "EUCTR Number mentioned in CT",
+           fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
+
 
 
 # Filter for crossregs between DRKS and EUCTR
-drks_euctr_confirmed <- trn_filtered |>
+drks_euctr_reg_linked <- trn_filtered |>
 #  standardize_pairs() |>
-  filter(non_euctr_registry == "DRKS") 
+  filter(non_euctr_registry == "DRKS") |>
+  filter(unidirectional | bidirectional)
 #  left_join(manual_validation, by = "standardized_pair") |>
 #  filter(is_true_crossreg)
 
 # Count how many EUCTR trials mention the corresponding DRKS number in their registry
-drks_euctr_mention_count <- sum(
-  (drks_euctr_confirmed$registry1 == "EudraCT" & drks_euctr_confirmed$trn2inreg1 == TRUE) |
-    (drks_euctr_confirmed$registry2 == "EudraCT" & drks_euctr_confirmed$trn1inreg2 == TRUE)
-)
+drks_euctr_mention <- drks_euctr_reg_linked |>
+  filter((registry1 == "EudraCT" & trn2inreg1 == TRUE) | (registry2 == "EudraCT" & trn1inreg2 == TRUE)) |>
+  select(standardized_pair)
 
-drks_euctr_mention_percentage <- (drks_euctr_mention_count / nrow(drks_euctr_confirmed) ) * 100
 
 # Count how many DRKS trials mention the corresponding EUCTR number in their registry
-euctr_drks_mention_count <- sum(
-  (drks_euctr_confirmed$registry1 == "DRKS" & drks_euctr_confirmed$trn2inreg1 == TRUE) |
-    (drks_euctr_confirmed$registry2 == "DRKS" & drks_euctr_confirmed$trn1inreg2 == TRUE)
-)
-
-euctr_drks_mention_percentage <- (euctr_drks_mention_count / nrow(drks_euctr_confirmed) ) * 100
+euctr_drks_mention <- drks_euctr_reg_linked |>
+  filter((registry1 == "DRKS" & trn2inreg1 == TRUE) | (registry2 == "DRKS" & trn1inreg2 == TRUE)) |>
+  select(standardized_pair)
 
 # Count how many match on title
-drks_euctr_title_match_count <- sum(replace_na(drks_euctr_confirmed$is_title_matched, FALSE))
+drks_euctr_title_match_count <- sum(replace_na(drks_euctr_reg_linked$is_title_matched, FALSE))
 
-drks_euctr_title_match_percentage <- (drks_euctr_title_match_count/ nrow(drks_euctr_confirmed) ) * 100
+drks_euctr_title_match_percentage <- (drks_euctr_title_match_count/ nrow(drks_euctr_reg_linked) ) * 100
+
+# Create the Venn Diagram
+drks_euctr_venn <- list(
+  "DRKS Number mentioned in EUCTR" = euctr_drks_mention$standardized_pair,
+  "EUCTR Number mentioned in DRKS" = drks_euctr_mention$standardized_pair
+)
+
+base_drks_euctr_venn <- ggvenn(
+  drks_euctr_venn,
+  fill_color = c("#0073C2FF", "#EFC000FF"),
+  stroke_size = 0.5,
+  set_name_size = 0 # Turn off default labels for custom handling
+)
+
+# Add custom labels with text boxes
+base_drks_euctr_venn +
+  annotate("label", x = -1.2, y = 1.1, label = "DRKS Number mentioned in EUCTR",
+           fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) +
+  annotate("label", x = 1.2, y = 1.1, label = "EUCTR Number mentioned in DRKS",
+           fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
+
+
+ggvenn(
+  drks_euctr_venn,
+  fill_color = c("#0073C2FF", "#EFC000FF"),
+  stroke_size = 0.5, set_name_size = 4
+)
 
 
 
