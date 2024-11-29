@@ -252,15 +252,6 @@ base_drks_euctr_venn +
   annotate("label", x = 1.2, y = 1.1, label = "EUCTR Number mentioned in DRKS",
            fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
 
-
-ggvenn(
-  drks_euctr_venn,
-  fill_color = c("#0073C2FF", "#EFC000FF"),
-  stroke_size = 0.5, set_name_size = 4
-)
-
-
-
 #########################################################################################################################
 # Continue making upset plot:
 
