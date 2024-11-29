@@ -11,6 +11,7 @@ library(lubridate)
 library(stringr)
 library(ctregistries)
 library(cli)
+library(ggvenn)
 
 # Function to standardize trial pairs, give them unique identifier
 standardize_pairs <- function(df) {
@@ -72,6 +73,30 @@ trn_pairs <- trn_standardized |> select(standardized_pair)
 # Convert to vectors for easy comparison
 ecrin_pairs_vector <- ecrin_pairs$standardized_pair
 trn_pairs_vector <- trn_pairs$standardized_pair
+
+#######################################################################################
+# New, cleaner approach to Venn diagrams that incorporates Daniel's suggestions
+# Replaces most of the code Venn diagram code past this section
+
+ecrin_venn_data <- list(
+  "Approach of the present study" = trn_pairs_vector,
+  "ECRIN Approach" = ecrin_pairs_vector
+  )
+
+base_ecrin_venn <- ggvenn(
+ ecrin_venn_data,
+  fill_color = c("#0073C2FF", "#EFC000FF"),
+  stroke_size = 0.5,
+  set_name_size = 0 # Turn off default labels for custom handling
+)
+
+base_ecrin_venn +
+  annotate("label", x = -1.2, y = 1.1, label = "Approach of the present study",
+           fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) +
+  annotate("label", x = 1.2, y = 1.1, label = "ECRIN Approach",
+           fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
+
+#######################################################################################
 
 # trn_resolves_pairs_vector <- trn_resolves_pairs$standardized_pair
 
@@ -168,6 +193,8 @@ priority_5_isolated <- trn_manual_standardized |>
 
 # determine which pairs in unique to ecrin we missed entirely (not in priority 5)
 difference <- setdiff(unique_to_ecrin_df$standardized_pair, priority_5_isolated$standardized_pair)
+
+
 
 
 # Filter by first two priorities
