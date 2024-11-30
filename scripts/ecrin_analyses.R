@@ -195,6 +195,29 @@ priority_5_isolated <- trn_manual_standardized |>
 difference <- setdiff(unique_to_ecrin_df$standardized_pair, priority_5_isolated$standardized_pair)
 
 
+###################################################################################################
+# Check how many of the pairs found exclusively by us were checked by us, and how many of those were actually positive
+
+manual_validation <- read.csv("data/manual_validation_processed.csv")
+unique_to_trn <- setdiff(trn_pairs_vector, ecrin_pairs_vector)
+unique_to_trn_df <- trn_pairs[!trn_pairs$standardized_pair %in% ecrin_pairs$standardized_pair, ]
+
+# Add in unique standardized_pair so we can compare with unique_to_trn_df
+manual_validation_standard = standardize_pairs(manual_validation)
+
+# Left join manually validated pairs to unique_to_trn_df
+trn_unique_with_manual <- unique_to_trn_df |>
+  left_join(manual_validation_standard, by = "standardized_pair") |>
+  filter(!is.na(is_true_crossreg))
+
+trn_unique_with_manual_summary <- trn_unique_with_manual |>
+  group_by(is_true_crossreg) |>
+  summarise(
+    total = n(),
+    proportion = n()/ nrow(trn_unique_with_manual)
+  )
+
+
 
 
 # Filter by first two priorities
