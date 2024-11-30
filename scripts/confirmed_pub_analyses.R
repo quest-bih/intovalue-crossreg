@@ -124,3 +124,83 @@ pub_linking_combinations <- upset_pub_crossregs |>
     legend.position.inside = c(.85, .9),
     axis.title.y = element_text(size = 11)
   )
+
+################################################################################
+# Upset plot for trials linked by publication, with false positive count
+
+manual_validated_standardized <- manual_validation |>
+  standardize_pairs() |>
+  select(standardized_pair, is_true_crossreg)
+
+# Filter for true cross-registrations
+confirmed_crossreg_standardized <- manual_validation |>
+  filter(is_true_crossreg) |>
+  standardize_pairs() |>
+  select(standardized_pair, is_true_crossreg)
+
+manual_validated <- manual_validated_standardized |>
+  left_join(trn_manual_checks_standardized, by = "standardized_pair") |>
+  mutate(is_true_crossreg = ifelse(standardized_pair == "2010-023688-16_NCT01326767", TRUE, is_true_crossreg)) # Manually change is_true_crossreg back to TRUE for row "2010-023688-16_NCT01326767", not sure why it changes at all
+
+# Filter for trials linked by publication in any way
+pub_crossregs_manual_validated <- manual_validated |>
+  filter(at_least_one_pub) |>
+  mutate(
+    trn1_in_pub_abs = replace_na(trn1_in_pub_abs, FALSE),
+    trn2_in_pub_abs = replace_na(trn2_in_pub_abs, FALSE),
+    trn_in_pub_abs = trn1_in_pub_abs | trn2_in_pub_abs,
+    
+    trn1_in_pub_si = replace_na(trn1_in_pub_si, FALSE),
+    trn2_in_pub_si = replace_na(trn2_in_pub_si, FALSE),
+    trn_in_pub_si = trn1_in_pub_si | trn2_in_pub_si,
+    
+    trn1_in_pub_ft = replace_na(trn1_in_pub_ft, FALSE),
+    trn2_in_pub_ft = replace_na(trn2_in_pub_ft, FALSE),
+    trn_in_pub_ft = trn1_in_pub_ft | trn2_in_pub_ft
+  )
+
+
+#Change format to make friendlier for ggupset
+upset_manual_validation <-
+  pub_crossregs_manual_validated |>
+  select(trn1,
+         trn2,
+         trn_in_pub_si,
+         trn_in_pub_abs,
+         trn_in_pub_ft,
+         standardized_pair
+  ) |>
+  rename(
+    "trn in SI" = trn_in_pub_si,
+    "trn in abstract" = trn_in_pub_abs,
+    "trn in full text" = trn_in_pub_ft,
+  ) |>
+  pivot_longer(cols = -c(trn1, trn2, standardized_pair), names_to = "link") |>
+  filter(value == TRUE) |>
+  group_by(trn1, trn2) |>
+  mutate(links = list(link)) |>
+  ungroup() |>
+  select(-value, -link) |>
+  distinct()
+
+upset_manual_false_positive <- upset_manual_validation |>
+  left_join(manual_validated_standardized, by = "standardized_pair")
+
+# Plot false positives in pub linkages
+pub_linking_combinations_false_positive <- upset_manual_false_positive |> 
+  ggplot(aes(x = links, fill = is_true_crossreg)) + 
+  geom_bar(position = "stack") + 
+  ggtitle("Publication linkages with false positive count") + 
+  geom_text(
+    stat = "count", 
+    aes(label = after_stat(count), group = is_true_crossreg), 
+    position = position_stack(vjust = 0.5) # Place labels in the middle of each section
+  ) + 
+  scale_x_upset(n_intersections = 20) + 
+  ylab("Number of pairs") + 
+  xlab("Linking combinations") + 
+  theme(
+    legend.background = element_rect(color = "transparent", fill = "transparent"), 
+    legend.position = c(.85, .9), 
+    axis.title.y = element_text(size = 11)
+  )
