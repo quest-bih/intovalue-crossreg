@@ -313,7 +313,67 @@ trn_combos_drks <- trn_combos |>
 trn_combos_ctgov <- trn_combos |>
   filter(non_euctr_registry == "ClinicalTrials.gov")
 
+############################################################################
+# Upset plot for manually validated TRN pairs
+# Will show false positivity rate per category
 
+
+manual_validation_upset <- read.csv("data/manual_validation_processed.csv") |>
+  standardize_pairs() |>
+  select(standardized_pair, is_true_crossreg)
+
+
+# Make trn_filtered readable for ggupset package, 
+# Retain standardized_pair so we can match it to manual_validation_upset
+trn_combos_validated <-
+  trn_filtered |>
+  select(trn1,
+         trn2,
+         non_euctr_registry,
+         is_title_matched,
+         at_least_one_pub,
+         bidirectional,
+         unidirectional, 
+         standardized_pair
+  ) |>
+  rename(
+    "Title matched" = is_title_matched,
+    "Publication link" = at_least_one_pub,
+    "Bidirectional link" = bidirectional,
+    "Undirectional link" = unidirectional
+  ) |>
+  pivot_longer(cols = -c(trn1, trn2, non_euctr_registry, standardized_pair), names_to = "link") |>
+  filter(value == TRUE) |>
+  group_by(trn1, trn2) |>
+  mutate(links = list(link)) |>
+  ungroup() |>
+  select(-value, -link) |>
+  distinct()
+
+# Join false positivity information to create new upset
+manual_validation_upset <- manual_validation_upset |>
+  left_join(trn_combos_validated, by = "standardized_pair") |>
+  mutate(links = ifelse(standardized_pair == " 2010-023688-16_NCT01326767", "Bidirectional link", links)) # Manually change `links` back to `bidirectional` for row "2010-023688-16_NCT01326767", not sure why it changes at all
+  
+# Upset plot showing manually validated TRN pairs, with false positivity displayed
+
+manual_validation_plot <- manual_validation_upset |> 
+  ggplot(aes(x = links, fill = is_true_crossreg)) + 
+  geom_bar(position = "stack") + 
+  ggtitle("Manually validated pairs combinations, with false positive count shown ") + 
+  geom_text(
+    stat = "count", 
+    aes(label = after_stat(count), group = is_true_crossreg), 
+    position = position_stack(vjust = 0.5) # Place labels in the middle of each section
+  ) + 
+  scale_x_upset(n_intersections = 20) + 
+  ylab("Number of pairs") + 
+  xlab("Linking combinations") + 
+  theme(
+    legend.background = element_rect(color = "transparent", fill = "transparent"), 
+    legend.position = c(.85, .9), 
+    axis.title.y = element_text(size = 11)
+  )
 
 
 ############################################################################
