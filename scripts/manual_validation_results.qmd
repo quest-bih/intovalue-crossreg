@@ -794,6 +794,188 @@ combined_plot2 <- plot_clinicaltrials + plot_drks + plot_layout(ncol = 2)
 print(combined_plot2)
 ```
 
+### New sensitivity analysis
+
+The purpose is to add a second sensitivity analysis, where we included any document linked (including publications added either automatically or manually) as TRUE for having summary results reported.
+
+#### Create a new variable
+
+Two new variables are needed for this analysis:
+
+1.  has_summary_results_reg1_sensitivity_v2
+
+2.  has_summary_results_reg2_sensitivity_v2
+
+**Proposal:** text in `comment_summary_results` seems to be more consistent when signalling no results: for EUCTR it says "euctr no results", for DRKS it says "drks no results", and for ClinicalTrials.gov it says "ctgov no results". In these two new variables, because we want to include everything that they linked as TRUE and only no results as FALSE, I propose to create these columns based on the no results text.
+
+```{r message = FALSE, warning = FALSE}
+
+discrepancy_data <- discrepancy_data |>
+  mutate(has_summary_results_reg1_sensitivity_v2 = if_else(
+      str_detect(comment_summary_results, "euctr no results"),
+      FALSE, TRUE),
+    has_summary_results_reg2_sensitivity_v2 = if_else(
+      str_detect(comment_summary_results, "drks no results|ctgov no results"),
+      FALSE, TRUE)) |>
+  relocate(has_summary_results_reg1_sensitivity_v2, 
+           .after = has_summary_results_reg1_sensitivity) |>
+  relocate(has_summary_results_reg2_sensitivity_v2, 
+           .after = has_summary_results_reg2_sensitivity)
+```
+
+#### Replicate analysis of summary results
+
+```{r message = FALSE, warning = FALSE}
+
+#overall
+discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed") |>
+  mutate(result_label = case_when(
+    has_summary_results_reg1_sensitivity_v2 == FALSE & has_summary_results_reg2_sensitivity_v2 == FALSE ~ "No results",
+    has_summary_results_reg1_sensitivity_v2 == TRUE & has_summary_results_reg2_sensitivity_v2 == FALSE ~ "Only EUCTR",
+    has_summary_results_reg1_sensitivity_v2 == TRUE & has_summary_results_reg2_sensitivity_v2 == TRUE ~ "Both",
+    has_summary_results_reg1_sensitivity_v2 == FALSE & has_summary_results_reg2_sensitivity_v2 == TRUE ~ "Only other registry"),
+    result_label = factor(result_label, levels = c("Only other registry", "Both", "Only EUCTR", "No results"))) |>
+  group_by(result_label) |>
+  summarise(count = n(), .groups = 'drop') |>
+  mutate(percentage = count / sum(count) * 100) |>
+  mutate(label = paste0(count, " (", round(percentage, 1), "%)"))
+
+#ClinicalTrials.gov
+discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed",
+         registry2 == "ClinicalTrials.gov") |>
+  mutate(result_label = case_when(
+    has_summary_results_reg1_sensitivity_v2 == FALSE & has_summary_results_reg2_sensitivity_v2 == FALSE ~ "No results",
+    has_summary_results_reg1_sensitivity_v2 == TRUE & has_summary_results_reg2_sensitivity_v2 == FALSE ~ "Only EUCTR",
+    has_summary_results_reg1_sensitivity_v2 == TRUE & has_summary_results_reg2_sensitivity_v2 == TRUE ~ "Both",
+    has_summary_results_reg1_sensitivity_v2 == FALSE & has_summary_results_reg2_sensitivity_v2 == TRUE ~ "Only other registry"),
+    result_label = factor(result_label, levels = c("Only other registry", "Both", "Only EUCTR", "No results"))) |>
+  group_by(result_label) |>
+  summarise(count = n(), .groups = 'drop') |>
+  mutate(percentage = count / sum(count) * 100) |>
+  mutate(label = paste0(count, " (", round(percentage, 1), "%)"))
+
+#DRKS
+discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed",
+         registry2 == "DRKS") |>
+  mutate(result_label = case_when(
+    has_summary_results_reg1_sensitivity_v2 == FALSE & has_summary_results_reg2_sensitivity_v2 == FALSE ~ "No results",
+    has_summary_results_reg1_sensitivity_v2 == TRUE & has_summary_results_reg2_sensitivity_v2 == FALSE ~ "Only EUCTR",
+    has_summary_results_reg1_sensitivity_v2 == TRUE & has_summary_results_reg2_sensitivity_v2 == TRUE ~ "Both",
+    has_summary_results_reg1_sensitivity_v2 == FALSE & has_summary_results_reg2_sensitivity_v2 == TRUE ~ "Only other registry"),
+    result_label = factor(result_label, levels = c("Only other registry", "Both", "Only EUCTR", "No results"))) |>
+  group_by(result_label) |>
+  summarise(count = n(), .groups = 'drop') |>
+  mutate(percentage = count / sum(count) * 100) |>
+  mutate(label = paste0(count, " (", round(percentage, 1), "%)"))
+```
+
+#### Replicate figure of summary results
+
+**Prepare data for plot**
+
+```{r message = FALSE, warning = FALSE}
+
+#main data
+main_data_summary <- discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed") |>
+  mutate(result_label = case_when(
+      has_summary_results_reg1_main == FALSE & has_summary_results_reg2_main == FALSE ~ "No results",
+      has_summary_results_reg1_main == TRUE & has_summary_results_reg2_main == FALSE ~ "Only EUCTR",
+      has_summary_results_reg1_main == TRUE & has_summary_results_reg2_main == TRUE ~ "Both",
+      has_summary_results_reg1_main == FALSE & has_summary_results_reg2_main == TRUE ~ "Only other registry"),
+    result_label = factor(result_label, levels = c("Only other registry", "Both", "Only EUCTR", "No results"))) |>
+  group_by(registry2, result_label) |>
+  summarise(count = n(), .groups = 'drop') |>
+  group_by(registry2) |>
+  mutate(percent = count / sum(count) * 100) |>
+  mutate(label = paste0(round(percent, 1), "% (n = ", count, ")"))  
+
+#sensitivity data
+sensitivity_data_summary <- discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed") |>
+  mutate(result_label = case_when(
+      has_summary_results_reg1_sensitivity == FALSE & has_summary_results_reg2_sensitivity == FALSE ~ "No results",
+      has_summary_results_reg1_sensitivity == TRUE & has_summary_results_reg2_sensitivity == FALSE ~ "Only EUCTR",
+      has_summary_results_reg1_sensitivity == TRUE & has_summary_results_reg2_sensitivity == TRUE ~ "Both",
+      has_summary_results_reg1_sensitivity == FALSE & has_summary_results_reg2_sensitivity == TRUE ~ "Only other registry"),
+    result_label = factor(result_label, levels = c("Only other registry", "Both", "Only EUCTR", "No results"))) |>
+  group_by(registry2, result_label) |>
+  summarise(count = n(), .groups = 'drop') |>
+  group_by(registry2) |>
+  mutate(percent = count / sum(count) * 100) |>
+  mutate(label = paste0(round(percent, 1), "% (n = ", count, ")")) 
+
+#sensitivity v2 data
+sensitivity_data_summary_v2 <- discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed") |>
+  mutate(result_label = case_when(
+      has_summary_results_reg1_sensitivity_v2 == FALSE & has_summary_results_reg2_sensitivity_v2 == FALSE ~ "No results",
+      has_summary_results_reg1_sensitivity_v2 == TRUE & has_summary_results_reg2_sensitivity_v2 == FALSE ~ "Only EUCTR",
+      has_summary_results_reg1_sensitivity_v2 == TRUE & has_summary_results_reg2_sensitivity_v2 == TRUE ~ "Both",
+      has_summary_results_reg1_sensitivity_v2 == FALSE & has_summary_results_reg2_sensitivity_v2 == TRUE ~ "Only other registry"),
+    result_label = factor(result_label, levels = c("Only other registry", "Both", "Only EUCTR", "No results"))) |>
+  group_by(registry2, result_label) |>
+  summarise(count = n(), .groups = 'drop') |>
+  group_by(registry2) |>
+  mutate(percent = count / sum(count) * 100) |>
+  mutate(label = paste0(round(percent, 1), "% (n = ", count, ")"))
+```
+
+**Figure**
+
+```{r message = FALSE, warning = FALSE}
+
+plot_clinicaltrials <- ggplot(
+  data = bind_rows(
+    main_data_summary %>% filter(registry2 == "ClinicalTrials.gov") %>% mutate(analysis_type = "Main"),
+    sensitivity_data_summary %>% filter(registry2 == "ClinicalTrials.gov") %>% mutate(analysis_type = "Sensitivity"),
+    sensitivity_data_summary_v2 %>% filter(registry2 == "ClinicalTrials.gov") %>% mutate(analysis_type = "Sensitivity V2")),
+  aes(x = analysis_type, y = percent, fill = result_label)) +
+  geom_bar(stat = "identity", position = "stack") +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 3.5) +
+  labs(x = "EUCTR - ClinicalTrials.gov", y = "Percentage", fill = "Results") +
+  scale_fill_manual(values = c("No results" = "lightgray", 
+                               "Only EUCTR" = "#2066a8", 
+                               "Both" = "#3594cc", 
+                               "Only other registry" = "#8cc5e3")) +
+  scale_y_continuous(limits = c(0, 101), breaks = seq(0, 100, by = 10)) +
+  theme_classic() +
+  theme(axis.text = element_text(size = 10),
+        legend.position = "none")
+
+#plot EUCTR-DRKS
+plot_drks <- ggplot(
+  data = bind_rows(
+    main_data_summary %>% filter(registry2 == "DRKS") %>% mutate(analysis_type = "Main"),
+    sensitivity_data_summary %>% filter(registry2 == "DRKS") %>% mutate(analysis_type = "Sensitivity"),
+    sensitivity_data_summary_v2 %>% filter(registry2 == "DRKS") %>% mutate(analysis_type = "Sensitivity V2")),
+  aes(x = analysis_type, y = percent, fill = result_label)) +
+  geom_bar(stat = "identity", position = "stack") +
+  geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 3.5) +
+  labs(x = "EUCTR - DRKS", y = "Percentage", fill = "Results") +
+  scale_fill_manual(values = c("No results" = "lightgray", 
+                               "Only EUCTR" = "#2066a8", 
+                               "Both" = "#3594cc", 
+                               "Only other registry" = "#8cc5e3")) +
+  scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) +
+  theme_classic() +
+  theme(axis.text = element_text(size = 10),
+        legend.position = "right")
+
+#combine plots
+all_combined_plot <- plot_clinicaltrials + plot_drks + plot_layout(ncol = 2)
+print(all_combined_plot)
+```
+
 ## Recruitment status
 
 ### Sankey plot version 1
