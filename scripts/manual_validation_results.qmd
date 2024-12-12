@@ -794,7 +794,7 @@ combined_plot2 <- plot_clinicaltrials + plot_drks + plot_layout(ncol = 2)
 print(combined_plot2)
 ```
 
-### New sensitivity analysis
+## New sensitivity analysis
 
 The purpose is to add a second sensitivity analysis, where we included any document linked (including publications added either automatically or manually) as TRUE for having summary results reported.
 
@@ -812,15 +812,69 @@ Two new variables are needed for this analysis:
 
 discrepancy_data <- discrepancy_data |>
   mutate(has_summary_results_reg1_sensitivity_v2 = if_else(
-      str_detect(comment_summary_results, "euctr no results"),
+      str_detect(comment_summary_results, "euctr no results|euctr: link to a summary that does not resolve|euctr link that does not resolve|euctr has link that does not resolve|euctr link to report that does not resolve|euctr links a synopsis that does not resolve|euctr link to synopsis that does not resolve|euctr link to summary trial results that does not resolve"),
       FALSE, TRUE),
     has_summary_results_reg2_sensitivity_v2 = if_else(
-      str_detect(comment_summary_results, "drks no results|ctgov no results"),
+      str_detect(comment_summary_results, "drks no results|ctgov no results|ctgov results submitted to ClinicalTrials.gov but not posted|ctgov results submitted but not posted|drks two links to publication that do not resolve"),
       FALSE, TRUE)) |>
   relocate(has_summary_results_reg1_sensitivity_v2, 
            .after = has_summary_results_reg1_sensitivity) |>
   relocate(has_summary_results_reg2_sensitivity_v2, 
            .after = has_summary_results_reg2_sensitivity)
+```
+
+#### Validation
+
+```{r message = FALSE, warning = FALSE}
+
+#create object to inspect
+spot_check_summary_results <- discrepancy_data |>
+  select(has_summary_results_reg1_main, has_summary_results_reg1_sensitivity, 
+         has_summary_results_reg1_sensitivity_v2, has_summary_results_reg2_main,
+         has_summary_results_reg2_sensitivity, has_summary_results_reg2_sensitivity_v2,
+         comment_summary_results)
+```
+
+```{r message = FALSE, warning = FALSE}
+
+spot_check_summary_results |>
+  mutate(
+    reg1_condition = str_detect(
+      comment_summary_results,
+      str_c("euctr no results",
+            "euctr: link to a summary that does not resolve",
+            "euctr link that does not resolve",
+            "euctr has link that does not resolve",
+            "euctr link to report that does not resolve",
+            "euctr links a synopsis that does not resolve",
+            "euctr link to synopsis that does not resolve",
+            "euctr link to summary trial results that does not resolve",
+            collapse = "|")),
+    reg2_condition = str_detect(
+      comment_summary_results,
+      str_c("ctgov results submitted to ClinicalTrials.gov but not posted",
+            "ctgov results submitted but not posted",
+            "drks two links to publication that do not resolve",
+            "ctgov no results",
+            "drks no results",
+            collapse = "|"))) |>
+  filter(
+    (reg1_condition & 
+     !(has_summary_results_reg1_main == FALSE &
+       has_summary_results_reg1_sensitivity == FALSE &
+       has_summary_results_reg1_sensitivity_v2 == FALSE)) |
+    (reg2_condition & 
+     !(has_summary_results_reg2_main == FALSE &
+       has_summary_results_reg2_sensitivity == FALSE &
+       has_summary_results_reg2_sensitivity_v2 == FALSE))) -> non_matching_rows
+
+#print result
+if (nrow(non_matching_rows) == 0) {
+  print("All columns are FALSE for the relevant conditions.")
+} else {
+  print("Not all columns are FALSE for the relevant conditions. Failed rows:")
+  print(non_matching_rows)
+}
 ```
 
 #### Replicate analysis of summary results
@@ -1541,9 +1595,9 @@ Further investigation on duplicates in **discrepancy_data** is needed:
 discrepancy_data |>
   filter(!trn1 %in% euctr_data_filtered$eudract_number) |>
   select(trn1, general_comment)
-
-#I get 6 missing IDs, all not having DE protocol.
 ```
+
+There are 6 TRN from `discrepancy_data` not included in `euctr_data_filtered`. These 6 have no DE protocol.
 
 #### Adding new completion date to discrepancy data
 
@@ -1576,8 +1630,7 @@ discrepancy_data |>
 
 discrepancy_data <- discrepancy_data |>
   mutate(completion_month_year_protocol = format(as.Date(completion_date_protocol, 
-                                                         format = "%Y-%m-%d"), "%Y-%m")) |>
-  relocate(completion_month_year_protocol, .after = completion_date_protocol)
+                                                         format = "%Y-%m-%d"), "%Y-%m"))
 ```
 
 #### Count of observations per registry
@@ -1586,7 +1639,7 @@ discrepancy_data <- discrepancy_data |>
 
 discrepancy_data |>
   filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
-  count(is.na(completion_month_year_protocol))
+  count(is.na(completion_month_year_protocol) | completion_month_year_protocol == "")
 
 discrepancy_data |>
   filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
