@@ -1540,6 +1540,53 @@ completion_combined_plot2 <- all_obs_ctgov + all_obs_drks + plot_layout(nrow =  
 print(completion_combined_plot2)
 ```
 
+### Overall plot (without distinguishing DRKS and ClinicalTrials.gov)
+
+```{r message = FALSE, warning = FALSE}
+
+overall_completion_plot <- discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+  filter(!is.na(completion_month_year_reg1) & !is.na(completion_month_year_reg2)) |>
+  mutate(completion_month_year_reg1 = as.Date(paste0(completion_month_year_reg1, "-01"), format = "%Y-%m-%d"),
+         completion_month_year_reg2 = as.Date(paste0(completion_month_year_reg2, "-01"), format = "%Y-%m-%d"),
+         time_diff = abs(completion_month_year_reg2 - completion_month_year_reg1),
+         is_equal = completion_month_year_reg1 == completion_month_year_reg2) |>
+  arrange(time_diff) |>
+  mutate(trn1 = factor(trn1, levels = trn1)) |>
+  ggplot(aes(y = trn1, 
+             x = completion_month_year_reg1,
+             xend = completion_month_year_reg2)) +
+  geom_dumbbell(color = "darkgray",  
+                size = 1,            
+                dot_guide = FALSE,   
+                size_x = 3,          
+                size_xend = 3,       
+                colour_x = "#3594cc",     
+                colour_xend = "#8cc5e3") + 
+  geom_point(data = . %>% filter(is_equal),
+             aes(x = completion_month_year_reg1, shape = "Both match"),
+             color = "#e79f31", 
+             size = 3.3) +
+  theme_classic() +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "top") +  
+  labs(x = "Year of completion\n(EUCTR - Other registry)",
+       y = "Pairs of cross-registered trials") +  
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  geom_point(aes(x = as.Date(NA), y = NA, color = factor("EUCTR", levels = c("EUCTR", "Other registry"))), size = 3) +
+  geom_point(aes(x = as.Date(NA), y = NA, color = factor("Other registry", levels = c("EUCTR", "Other registry"))), size = 3) +
+  scale_color_manual(name = "Registry",
+                     values = c("EUCTR" = "#3594cc", 
+                                "Other registry" = "#8cc5e3"),
+                     labels = c("EUCTR", "Other registry")) +
+  scale_shape_manual(values = c("Both match" = 16), labels = c("Both match" = "Both match")) +
+  guides(color = guide_legend(order = 1, override.aes = list(size = 3)),
+         shape = guide_legend(order = 2, title = NULL))
+
+print(overall_completion_plot)
+```
+
 ### Sensitivity analysis completion date
 
 Sensitivity analysis of completion date present in the German member state protocol, instead of the result section. We used data from euctr data dump to retrieve the completion date from protocols.
@@ -1622,6 +1669,35 @@ discrepancy_data |>
     total_rows = n()
   ) |>
   mutate(missing_percentage = (missing_count / total_rows) * 100)
+```
+
+```{r message = FALSE, warning = FALSE}
+
+de_spot_check_completion_date <- discrepancy_data |>
+  select(trn1, 
+         overall_recruitment_status_reg1, 
+         overall_recruitment_status_reg2,
+         completion_date_protocol) |>
+  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+  filter(is.na(completion_date_protocol) | completion_date_protocol == "")
+  
+#6 NA are the ones without DE protocol.
+#22 are blank. Upon inspecting them on EUCTR website I found:
+#in protocol they have completed status and NO global end of trial. If I clicked results, then there was always a date available there, which could explain why in main analysis we did not encounter this issue for overall enrollment complete trials in more than 8 cases. 
+
+main_check_completion_date_main <- discrepancy_data |>
+  select(trn1, 
+         overall_recruitment_status_reg1, 
+         overall_recruitment_status_reg2,
+         completion_date_reg1) |>
+  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+  filter(
+    is.na(completion_date_reg1) | completion_date_reg1 == "" | completion_date_reg1 == "N/A")
+
+#8 cases of missing completion date, but complete recruitment status.
+#upon manually checking the 28 missing from Nick's data, I verified that each euctr trn that had no date on both protocol and results, was also labelled as N/A in the manually extracted completion date. 
+
+#therefore, of the 28 missing from Nick's data, 6 are not DE protocol, 14 are missing completion date on the protocol, and 8 are missing their completion date on both protocol and results section in EUCTR registry page.
 ```
 
 #### Create new variable month_year for completion_date_protocol
@@ -1842,4 +1918,51 @@ all_obs_drks <- discrepancy_data |>
 #combined plot
 completion_combined_plot2 <- all_obs_ctgov + all_obs_drks + plot_layout(nrow =  2)
 print(completion_combined_plot2)
+```
+
+#### Overall plot (without distinguishing between CTgov and DRKS)
+
+```{r message = FALSE, warning = FALSE}
+
+overall_completion_plot2 <- discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+  filter(!is.na(completion_month_year_protocol) & !is.na(completion_month_year_reg2)) |>
+  mutate(completion_month_year_protocol = as.Date(paste0(completion_month_year_protocol, "-01"), format = "%Y-%m-%d"),
+         completion_month_year_reg2 = as.Date(paste0(completion_month_year_reg2, "-01"), format = "%Y-%m-%d"),
+         time_diff = abs(completion_month_year_reg2 - completion_month_year_protocol),
+         is_equal = completion_month_year_protocol == completion_month_year_reg2) |>
+  arrange(time_diff) |>
+  mutate(trn1 = factor(trn1, levels = trn1)) |>
+  ggplot(aes(y = trn1, 
+             x = completion_month_year_protocol,
+             xend = completion_month_year_reg2)) +
+  geom_dumbbell(color = "darkgray",  
+                size = 1,            
+                dot_guide = FALSE,   
+                size_x = 3,          
+                size_xend = 3,       
+                colour_x = "#3594cc",     
+                colour_xend = "#8cc5e3") + 
+  geom_point(data = . %>% filter(is_equal),
+             aes(x = completion_month_year_protocol, shape = "Both match"),
+             color = "#e79f31", 
+             size = 3.3) +
+  theme_classic() +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.position = "top") +  
+  labs(x = "Year of completion\n(EUCTR - Other registry)",
+       y = "Pairs of cross-registered trials") +  
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+  geom_point(aes(x = as.Date(NA), y = NA, color = factor("EUCTR", levels = c("EUCTR", "Other registry"))), size = 3) +
+  geom_point(aes(x = as.Date(NA), y = NA, color = factor("Other registry", levels = c("EUCTR", "Other registry"))), size = 3) +
+  scale_color_manual(name = "Registry",
+                     values = c("EUCTR" = "#3594cc", 
+                                "Other registry" = "#8cc5e3"),
+                     labels = c("EUCTR", "Other registry")) +
+  scale_shape_manual(values = c("Both match" = 16), labels = c("Both match" = "Both match")) +
+  guides(color = guide_legend(order = 1, override.aes = list(size = 3)),
+         shape = guide_legend(order = 2, title = NULL))
+
+print(overall_completion_plot2)
 ```
