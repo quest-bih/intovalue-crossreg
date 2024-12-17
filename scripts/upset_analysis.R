@@ -12,6 +12,7 @@ library(ggupset)
 library(ggplot2)
 library(VennDiagram)
 library(ggvenn)
+library(gtsummary)
 
 
 # Read in manual checks table, filter out everything w/ priority more than 4 and non-resolving or removed TRNs
@@ -58,6 +59,7 @@ trn_filtered <- standardize_pairs(trn_filtered)
 trn_filtered <- trn_filtered |>
   mutate(
     bidirectional = if_else(trn1inreg2 & trn2inreg1, TRUE, FALSE),
+    is_title_matched = if_else(is.na(is_title_matched), FALSE, is_title_matched),
     non_euctr_registry = ifelse(registry1 == "EudraCT", registry2, registry1) #,
     # unidirectional = if_else((trn1inreg2 | trn2inreg1), TRUE, FALSE)
   ) |>
@@ -166,6 +168,31 @@ trn_drks_pub <- trn_filtered |>
   filter(non_euctr_registry == "DRKS") |>
   filter(at_least_one_pub) |>
   nrow()
+
+# Code for Table 1, cleaner than the above
+table_1_summary <- trn_filtered |>
+  select(
+    non_euctr_registry,
+    bidirectional,
+    unidirectional,
+    is_title_matched,
+    at_least_one_pub
+  ) |>
+  gtsummary::tbl_summary(
+    by = non_euctr_registry,
+    label = list(
+      bidirectional ~ "Bidirectional linking in registry",
+      unidirectional ~ "Unidirectional linking in registry",
+      is_title_matched ~ "Approximate title-matching",
+      at_least_one_pub ~ "Match on identifier in publication"
+    )
+  ) |>
+  add_overall() |>
+  modify_header(label = "") |>
+  modify_caption("Characteristics indicating potential cross-registrations, overall and by registry (prior to manual validation).") %>%
+  bold_labels() |>
+  modify_footnote(everything() ~ NA)
+
 
 #########################################################################################################################
 # Code to determine % of cross-reg matches that provide information on the other registry in one registry 
