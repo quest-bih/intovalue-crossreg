@@ -187,6 +187,7 @@ upset_manual_false_positive <- upset_manual_validation |>
   left_join(manual_validated_standardized, by = "standardized_pair")
 
 # Plot false positives in pub linkages
+  
 pub_linking_combinations_false_positive <- upset_manual_false_positive |> 
   ggplot(aes(x = links, fill = is_true_crossreg)) + 
   geom_bar(position = "stack") + 
@@ -199,8 +200,10 @@ pub_linking_combinations_false_positive <- upset_manual_false_positive |>
   scale_x_upset(n_intersections = 20) + 
   ylab("Number of pairs") + 
   xlab("Linking combinations") + 
+  scale_fill_manual(values = c("TRUE" = "#0073C2FF", "FALSE" = "#EFC000FF"),
+                    name = "Confirmed as a true cross-registration") +
   theme(
     legend.background = element_rect(color = "transparent", fill = "transparent"), 
-    legend.position = c(.85, .9), 
+    legend.position = c(.85, .9),
     axis.title.y = element_text(size = 11)
   )
