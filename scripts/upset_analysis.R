@@ -403,6 +403,8 @@ manual_validation_plot <- manual_validation_upset |>
     position = position_stack(vjust = 0.5) # Place labels in the middle of each section
   ) + 
   scale_x_upset(n_intersections = 20) + 
+  scale_fill_manual(values = c("TRUE" = "#0073C2FF", "FALSE" = "#EFC000FF"),
+                    name = "Confirmed as a true cross-registration") +
   ylab("Number of pairs") + 
   xlab("Linking combinations") + 
   theme(
