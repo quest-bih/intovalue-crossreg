@@ -12,6 +12,7 @@ library(stringr)
 library(ctregistries)
 library(cli)
 library(ggvenn)
+library(eulerr)
 
 # Function to standardize trial pairs, give them unique identifier
 standardize_pairs <- function(df) {
@@ -87,7 +88,8 @@ base_ecrin_venn <- ggvenn(
  ecrin_venn_data,
   fill_color = c("#0073C2FF", "#EFC000FF"),
   stroke_size = 0.5,
-  set_name_size = 0 # Turn off default labels for custom handling
+  set_name_size = 0, # Turn off default labels for custom handling
+ auto_scale = TRUE
 )
 
 base_ecrin_venn +
