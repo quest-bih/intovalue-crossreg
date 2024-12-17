@@ -232,6 +232,7 @@ base_ct_euctr_venn <- ggvenn(
   ct_euctr_venn,
   fill_color = c("#0073C2FF", "#EFC000FF"),
   stroke_size = 0.5,
+  auto_scale = TRUE,
   set_name_size = 0 # Turn off default labels for custom handling
 )
 
@@ -270,14 +271,15 @@ drks_euctr_title_match_percentage <- (drks_euctr_title_match_count/ nrow(drks_eu
 
 # Create the Venn Diagram
 drks_euctr_venn <- list(
-  "DRKS Number mentioned in EUCTR" = euctr_drks_mention$standardized_pair,
-  "EUCTR Number mentioned in DRKS" = drks_euctr_mention$standardized_pair
-)
+  "DRKS Number mentioned in EUCTR" = drks_euctr_mention$standardized_pair,
+  "EUCTR Number mentioned in DRKS" = euctr_drks_mention$standardized_pair
+  )
 
 base_drks_euctr_venn <- ggvenn(
   drks_euctr_venn,
   fill_color = c("#0073C2FF", "#EFC000FF"),
   stroke_size = 0.5,
+  auto_scale = TRUE,
   set_name_size = 0 # Turn off default labels for custom handling
 )
 
