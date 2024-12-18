@@ -56,8 +56,8 @@ summary_by_year <- intovalue |>
   ) |> 
   mutate(
     crossreg_status = recode(crossreg_status,
-                             crossreg_trials = "Potentially Cross-Registered in EUCTR",
-                             non_crossreg_trials = "Likely not Cross-Registered in EUCTR")
+                             crossreg_trials = "TRUE",
+                             non_crossreg_trials = "FALSE")
   )
 
 # Plot the data
@@ -65,18 +65,22 @@ ggplot(summary_by_year, aes(x = completion_year, y = count, fill = crossreg_stat
   geom_bar(stat = "identity", position = "stack") +
   geom_text(
     aes(
-      label = ifelse(crossreg_status == "Potentially Cross-Registered in EUCTR", 
+      label = ifelse(crossreg_status == "TRUE", 
                      paste0(crossreg_percentage, "%"), "")
     ), 
     position = position_stack(vjust = 0.5), 
-    color = "black", size = 2
+    color = "black", size = 4
   ) +
-  scale_fill_manual(values = c("Potentially Cross-Registered in EUCTR" = "#f0e442", "Likely not Cross-Registered in EUCTR" = "#009e73")) +
+  scale_fill_manual(values = c("TRUE" = "#f0e442", "FALSE" = "#009e73")) +
+  scale_x_continuous(
+    breaks = 2009:2017,  # Explicitly set discrete years as ticks
+    labels = as.character(2009:2017) # Convert breaks to discrete labels
+  ) +
   labs(
     title = "Total Trials and Proportion of IntoValue Trials Potentially Cross-Registered in EUCTR by Year",
     x = "Completion Year",
     y = "Number of Trials",
-    fill = "Cross-Reg Status"
+    fill = "Potential EUCTR cross-registration"
   ) +
   theme_minimal()
 
