@@ -205,6 +205,11 @@ ct_euctr_reg_linked <- trn_filtered |>
 #  left_join(manual_validation, by = "standardized_pair") |>
   #filter(is_true_crossreg)
 
+# Filter for crossregs between CT and EUCTR that were title matched
+ct_euctr_title_matched <- trn_filtered |>
+  filter(non_euctr_registry == "ClinicalTrials.gov") |>
+  filter(is_title_matched)
+
 # Count how many EUCTR trials mention the corresponding CT number in their registry
 ct_euctr_mention <- ct_euctr_reg_linked |>
   filter((registry1 == "EudraCT" & trn2inreg1 == TRUE) | (registry2 == "EudraCT" & trn1inreg2 == TRUE)) |>
@@ -225,7 +230,8 @@ ct_euctr_title_match_percentage <- (ct_euctr_title_match_count/ nrow(ct_euctr_re
 # Create the Venn Diagram
 ct_euctr_venn <- list(
   "CT Number mentioned in EUCTR" = ct_euctr_mention$standardized_pair,
-  "EUCTR Number mentioned in CT" = euctr_ct_mention$standardized_pair
+  "EUCTR Number mentioned in CT" = euctr_ct_mention$standardized_pair #,
+#  "Matched on title" = ct_euctr_title_matched$standardized_pair
 )
 
 base_ct_euctr_venn <- ggvenn(
@@ -241,7 +247,9 @@ base_ct_euctr_venn +
   annotate("label", x = -1.2, y = 1.1, label = "CT Number mentioned in EUCTR",
            fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) +
   annotate("label", x = 1.2, y = 1.1, label = "EUCTR Number mentioned in CT",
-           fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
+           fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) # +
+ # annotate("label", x = 0, y = -1.1, label = "Trials matched on title",
+       #    fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
 
 
 
@@ -252,6 +260,11 @@ drks_euctr_reg_linked <- trn_filtered |>
   filter(unidirectional | bidirectional)
 #  left_join(manual_validation, by = "standardized_pair") |>
 #  filter(is_true_crossreg)
+
+# Filter for crossregs between CT and EUCTR that were title matched
+drks_euctr_title_matched <- trn_filtered |>
+  filter(non_euctr_registry == "DRKS") |>
+  filter(is_title_matched)
 
 # Count how many EUCTR trials mention the corresponding DRKS number in their registry
 drks_euctr_mention <- drks_euctr_reg_linked |>
@@ -272,7 +285,8 @@ drks_euctr_title_match_percentage <- (drks_euctr_title_match_count/ nrow(drks_eu
 # Create the Venn Diagram
 drks_euctr_venn <- list(
   "DRKS Number mentioned in EUCTR" = drks_euctr_mention$standardized_pair,
-  "EUCTR Number mentioned in DRKS" = euctr_drks_mention$standardized_pair
+  "EUCTR Number mentioned in DRKS" = euctr_drks_mention$standardized_pair #,
+# "Trials matched on title" = drks_euctr_title_matched$standardized_pair
   )
 
 base_drks_euctr_venn <- ggvenn(
@@ -288,7 +302,9 @@ base_drks_euctr_venn +
   annotate("label", x = -1.2, y = 1.1, label = "DRKS Number mentioned in EUCTR",
            fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) +
   annotate("label", x = 1.2, y = 1.1, label = "EUCTR Number mentioned in DRKS",
-           fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
+           fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) # +
+ # annotate("label", x = 0, y = -1.1, label = "Trials matched on title",
+    #       fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
 
 #########################################################################################################################
 # Continue making upset plot:
