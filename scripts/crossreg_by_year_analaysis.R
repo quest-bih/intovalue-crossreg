@@ -10,9 +10,12 @@ library(ctregistries)
 library(cli)
 library(ggupset)
 library(ggplot2)
+library(readr)
 
 trn_manual_checks <- read_rds("data/crossreg_pipeline_output.rds")
-intovalue <- read_csv("data/ct-dashboard-intovalue-all.csv")
+
+url <- "https://osf.io/mkgux/download"
+intovalue <- read_csv(url)
 
 intovalue <- intovalue |>
   select(id, completion_year)|>
@@ -53,8 +56,8 @@ summary_by_year <- intovalue |>
   ) |> 
   mutate(
     crossreg_status = recode(crossreg_status,
-                             crossreg_trials = "Cross-Registered in EUCTR",
-                             non_crossreg_trials = "Not Cross-Registered in EUCTR")
+                             crossreg_trials = "Potentially Cross-Registered in EUCTR",
+                             non_crossreg_trials = "Likely not Cross-Registered in EUCTR")
   )
 
 # Plot the data
@@ -62,18 +65,18 @@ ggplot(summary_by_year, aes(x = completion_year, y = count, fill = crossreg_stat
   geom_bar(stat = "identity", position = "stack") +
   geom_text(
     aes(
-      label = ifelse(crossreg_status == "Cross-Registered in EUCTR", 
+      label = ifelse(crossreg_status == "Potentially Cross-Registered in EUCTR", 
                      paste0(crossreg_percentage, "%"), "")
     ), 
     position = position_stack(vjust = 0.5), 
     color = "black", size = 2
   ) +
-  scale_fill_manual(values = c("Cross-Registered in EUCTR" = "lightblue", "Not Cross-Registered in EUCTR" = "coral")) +
+  scale_fill_manual(values = c("Potentially Cross-Registered in EUCTR" = "#f0e442", "Likely not Cross-Registered in EUCTR" = "#009e73")) +
   labs(
-    title = "Total Trials and Proportion of Cross-Registered Trials by Year",
-    x = "Year",
+    title = "Total Trials and Proportion of IntoValue Trials Potentially Cross-Registered in EUCTR by Year",
+    x = "Completion Year",
     y = "Number of Trials",
-    fill = "Registration Status"
+    fill = "Cross-Reg Status"
   ) +
   theme_minimal()
 
