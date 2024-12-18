@@ -1,5 +1,6 @@
 # Script to analyze prospective vs retrospective registrations in cross-registrations
 
+
 library(tidyverse)
 library(readr)
 library("readxl")
@@ -37,7 +38,7 @@ trn_filtered <- trn_filtered |>
   )
 
 # Read in tables with prospective/retrospective classifications
-drks_registration_type <- read.csv("data/iv_trials_drks_26_11_2024.csv") |>
+drks_registration_type <- read.csv("data/iv_trials_drks_26_11_2024.csv") #|>
   select(drks_id, registration_type) |>
   rename(non_euctr_trn = drks_id) |>
   mutate(
