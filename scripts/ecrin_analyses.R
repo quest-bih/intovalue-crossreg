@@ -93,60 +93,66 @@ base_ecrin_venn <- ggvenn(
 )
 
 base_ecrin_venn +
-  annotate("label", x = -1.2, y = 1.1, label = "Approach of the present study",
+  annotate("label", x = -1.5, y = 0, label = "Approach of the present study",
            fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) +
-  annotate("label", x = 1.2, y = 1.1, label = "ECRIN Approach",
+  annotate("label", x = 1.2, y = 0, label = "ECRIN Approach",
            fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
 
 #######################################################################################
+# The below is no longer being used. It was the previous method for creating Ecrin Venn diagrams with 
+# proportional area sizes
+# Also includes code for making Ecrin Venn with only TRNs that resolve in the Ecrin database.
+# It should be completely commmented out
 
 # trn_resolves_pairs_vector <- trn_resolves_pairs$standardized_pair
-
 # Create a Venn diagram for the pair overlaps
-overlap_plot <- venn.diagram(
-  x = list(
-    "ECRIN" = ecrin_pairs_vector,
-    "TRN Manual" = trn_pairs_vector
-  ),
-  category.names = c("ECRIN", "TRN Manual"),
-  filename = NULL,  # Don't save to file; display directly
-  output = TRUE,
-  fill = c("lightblue", "lightgreen"),
-  alpha = 0.5,
-  cex = 2,
-  fontfamily = "sans",
-  cat.fontfamily = "sans",
-  cat.cex = 2,
-  cat.pos = c(-20, 20)
-)
+# overlap_plot <- venn.diagram(
+#  x = list(
+#    "ECRIN" = ecrin_pairs_vector,
+#    "TRN Manual" = trn_pairs_vector
+#  ),
+#  category.names = c("ECRIN", "TRN Manual"),
+#  filename = NULL,  # Don't save to file; display directly
+#  output = TRUE,
+#  fill = c("lightblue", "lightgreen"),
+#  alpha = 0.5,
+#  cex = 2,
+#  fontfamily = "sans",
+#  cat.fontfamily = "sans",
+#  cat.cex = 2,
+#  cat.pos = c(-20, 20)
+# )
 
 # Plot the Venn diagram
-grid.draw(overlap_plot)
+# grid.draw(overlap_plot)
 
 # Create a Venn diagram for the pair overlaps for TRNs that resolve
-resolves_overlap_plot <- venn.diagram(
-  x = list(
-    "ECRIN" = ecrin_pairs_vector,
-    "TRN Manual" = trn_resolves_pairs_vector
-  ),
-  category.names = c("ECRIN", "TRN Manual"),
-  filename = NULL,  # Don't save to file; display directly
-  output = TRUE,
-  fill = c("lightblue", "lightgreen"),
-  alpha = 0.5,
-  cex = 2,
-  fontfamily = "sans",
-  cat.fontfamily = "sans",
-  cat.cex = 2,
-  cat.pos = c(-20, 20)
-)
+# resolves_overlap_plot <- venn.diagram(
+#  x = list(
+#    "ECRIN" = ecrin_pairs_vector,
+#    "TRN Manual" = trn_resolves_pairs_vector
+#  ),
+#  category.names = c("ECRIN", "TRN Manual"),
+#  filename = NULL,  # Don't save to file; display directly
+#  output = TRUE,
+#  fill = c("lightblue", "lightgreen"),
+#  alpha = 0.5,
+#  cex = 2,
+#  fontfamily = "sans",
+#  cat.fontfamily = "sans",
+# cat.cex = 2,
+ # cat.pos = c(-20, 20)
+#)
 
 # Plot the Venn diagram
-grid.draw(resolves_overlap_plot)
+# grid.draw(resolves_overlap_plot)
 
-common_pairs <- intersect(ecrin_pairs_vector, trn_pairs_vector)
-unique_to_ecrin <- setdiff(ecrin_pairs_vector, trn_pairs_vector)
-unique_to_trn <- setdiff(trn_pairs_vector, ecrin_pairs_vector)
+#######################################################################################
+# Here we identify the trial pairs unique to ECRIN's approach and our approach, and where our approaches overlapped
+
+ common_pairs <- intersect(ecrin_pairs_vector, trn_pairs_vector)
+ unique_to_ecrin <- setdiff(ecrin_pairs_vector, trn_pairs_vector)
+ unique_to_trn <- setdiff(trn_pairs_vector, ecrin_pairs_vector)
 
 # Pairs that resolve
 # resolves_common_pairs <- intersect(ecrin_pairs_vector, trn_resolves_pairs_vector)
@@ -162,11 +168,11 @@ unique_to_ecrin_count <- length(unique_to_ecrin)
 unique_to_trn_count <- length(unique_to_trn)
 
 # Summary counts for resolving pairs
-resolves_total_ecrin <- length(ecrin_pairs_vector)
-resolves_total_trn <- length(trn_resolves_pairs_vector)
-resolves_common_count <- length(resolves_common_pairs)
-resolves_unique_to_ecrin_count <- length(resolves_unique_to_ecrin)
-resolves_unique_to_trn_count <- length(resolves_unique_to_trn)
+# resolves_total_ecrin <- length(ecrin_pairs_vector)
+# resolves_total_trn <- length(trn_resolves_pairs_vector)
+# resolves_common_count <- length(resolves_common_pairs)
+# resolves_unique_to_ecrin_count <- length(resolves_unique_to_ecrin)
+# resolves_unique_to_trn_count <- length(resolves_unique_to_trn)
 
 # tables of trial pairs unique to ecrin or TRN
 unique_to_ecrin_df <- ecrin_pairs[!ecrin_pairs$standardized_pair %in% trn_pairs$standardized_pair, ]
@@ -195,7 +201,6 @@ priority_5_isolated <- trn_manual_standardized |>
 
 # determine which pairs in unique to ecrin we missed entirely (not in priority 5)
 difference <- setdiff(unique_to_ecrin_df$standardized_pair, priority_5_isolated$standardized_pair)
-
 
 ###################################################################################################
 # Check how many of the pairs found exclusively by us were checked by us, and how many of those were actually positive
