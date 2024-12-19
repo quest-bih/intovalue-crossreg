@@ -222,7 +222,6 @@ upset_manual_false_positive <- upset_manual_validation |>
 pub_linking_combinations_false_positive <- upset_manual_false_positive |> 
   ggplot(aes(x = links, fill = is_true_crossreg)) + 
   geom_bar(position = "stack") + 
-  ggtitle("Publication linkages with false positive count") + 
   geom_text(
     stat = "count", 
     aes(label = after_stat(count), group = is_true_crossreg), 
@@ -284,7 +283,6 @@ manual_validation_upset <- manual_validation_upset |>
 manual_validation_plot <- manual_validation_upset |> 
   ggplot(aes(x = links, fill = is_true_crossreg)) + 
   geom_bar(position = "stack") + 
-  ggtitle("Manually validated pairs combinations, with false positive count shown ") + 
   geom_text(
     stat = "count", 
     aes(label = after_stat(count), group = is_true_crossreg), 
