@@ -1,4 +1,4 @@
-# Script to make upset plots of different ways we identified crossregs
+# Script exploring all potential crossregs, producing upset plots, Venn diagrams, tables, etc.
 library(tidyverse)
 library(here)
 library(lubridate)
@@ -15,7 +15,7 @@ library(ggvenn)
 library(gtsummary)
 
 
-# Read in manual checks table, filter out everything w/ priority more than 4 and non-resolving or removed TRNs
+# Read in data ------------------------------------------------------------
 trn_manual_checks = read_rds("data/crossreg_pipeline_output.rds")
 
 trn_filtered <- trn_manual_checks |>
@@ -40,12 +40,6 @@ standardize_pairs <- function(df) {
     ungroup()
 }
 
-# Read in confirmed crossregs, standardize pairs so we can merge with larger table
-manual_validation <- read.csv("data/manual_validation_processed.csv") |>
-  filter(is_true_crossreg) |>
-  standardize_pairs() |>
-  select(standardized_pair, is_true_crossreg)
-
 trn_filtered <- standardize_pairs(trn_filtered)
 
 # Add columns to simplify identifying bidirectional/unidirectional linking, make upset plot easier to build
@@ -68,14 +62,9 @@ trn_filtered <- trn_filtered |>
   )
 
 
+#################################################################################################
 
-# Full table containing only true, validated crossregs for another upset plot
-validated_crossreg <- trn_filtered |>
-  left_join(manual_validation, by = "standardized_pair") |> 
-  mutate(is_true_crossreg = ifelse(standardized_pair == "2010-023688-16_NCT01326767", TRUE, is_true_crossreg))|> # Manually change is_true_crossreg back to TRUE for row "2010-023688-16_NCT01326767", not sure why it changes at all
-  filter(is_true_crossreg)
-
-#########################################################################################################################
+# Exploration of trials registered in 3 registries ------------------------
 # Count and analyze how many cross-registrations are in all 3 registrations (informal) analysis
 
 # Assign euctr_trn and non_euctr_trn based on the registry
@@ -108,66 +97,67 @@ duplicates <- trn_filtered |>
 ############################################################################
 # Code for Table 1
 # Table 1. Characteristics indicating potential cross-registrations, 
-# overall and by registry (prior to manual validation).  
+# overall and by registry (prior to manual validation). 
+# Most of the code below is replaceable with the code creating table_1_summary, so it has been commented out
 
 # Overall
-trn_overall_bidirectional <- trn_filtered |>
-  filter(bidirectional) |>
-  nrow()
+#trn_overall_bidirectional <- trn_filtered |>
+#  filter(bidirectional) |>
+#  nrow()
 
-trn_overall_unidirectional <- trn_filtered |>
-  filter(unidirectional) |>
-  nrow()
+#trn_overall_unidirectional <- trn_filtered |>
+#  filter(unidirectional) |>
+#  nrow()
 
-trn_overall_title_match <- trn_filtered |>
-  filter(is_title_matched) |>
-  nrow()
+#trn_overall_title_match <- trn_filtered |>
+#  filter(is_title_matched) |>
+#  nrow()
 
-trn_overall_pub <- trn_filtered |>
-  filter(at_least_one_pub) |>
-  nrow()
+#trn_overall_pub <- trn_filtered |>
+#  filter(at_least_one_pub) |>
+#  nrow()
 
 # ClinicalTrials.gov
-trn_ct_bidirectional <- trn_filtered |>
-  filter(non_euctr_registry == "ClinicalTrials.gov") |>
-  filter(bidirectional) |>
-  nrow()
+#trn_ct_bidirectional <- trn_filtered |>
+#  filter(non_euctr_registry == "ClinicalTrials.gov") |>
+#  filter(bidirectional) |>
+#  nrow()
 
-trn_ct_unidirectional <- trn_filtered |>
-  filter(non_euctr_registry == "ClinicalTrials.gov") |>
-  filter(unidirectional) |>
-  nrow()
+#trn_ct_unidirectional <- trn_filtered |>
+#  filter(non_euctr_registry == "ClinicalTrials.gov") |>
+#  filter(unidirectional) |>
+#  nrow()
 
-trn_ct_title_matched <- trn_filtered |>
-  filter(non_euctr_registry == "ClinicalTrials.gov") |>
-  filter(is_title_matched) |>
-  nrow()
+#trn_ct_title_matched <- trn_filtered |>
+#  filter(non_euctr_registry == "ClinicalTrials.gov") |>
+#  filter(is_title_matched) |>
+#  nrow()
 
-trn_ct_pub <- trn_filtered |>
-  filter(non_euctr_registry == "ClinicalTrials.gov") |>
-  filter(at_least_one_pub) |>
-  nrow()
+#trn_ct_pub <- trn_filtered |>
+#  filter(non_euctr_registry == "ClinicalTrials.gov") |>
+#  filter(at_least_one_pub) |>
+#  nrow()
 
 # DRKS
-trn_drks_bidirectional <- trn_filtered |>
-  filter(non_euctr_registry == "DRKS") |>
-  filter(bidirectional) |>
-  nrow()
+#trn_drks_bidirectional <- trn_filtered |>
+#  filter(non_euctr_registry == "DRKS") |>
+#  filter(bidirectional) |>
+#  nrow()
 
-trn_drks_unidirectional <- trn_filtered |>
-  filter(non_euctr_registry == "DRKS") |>
-  filter(unidirectional) |>
-  nrow()
+#trn_drks_unidirectional <- trn_filtered |>
+#  filter(non_euctr_registry == "DRKS") |>
+#  filter(unidirectional) |>
+#  nrow()
 
-trn_drks_title_matched <- trn_filtered |>
-  filter(non_euctr_registry == "DRKS") |>
-  filter(is_title_matched) |>
-  nrow()
+#trn_drks_title_matched <- trn_filtered |>
+#  filter(non_euctr_registry == "DRKS") |>
+#  filter(is_title_matched) |>
+#  nrow()
 
-trn_drks_pub <- trn_filtered |>
-  filter(non_euctr_registry == "DRKS") |>
-  filter(at_least_one_pub) |>
-  nrow()
+#trn_drks_pub <- trn_filtered |>
+#  filter(non_euctr_registry == "DRKS") |>
+#  filter(at_least_one_pub) |>
+#  nrow()
 
 # Code for Table 1, cleaner than the above
 table_1_summary <- trn_filtered |>
@@ -195,7 +185,8 @@ table_1_summary <- trn_filtered |>
 
 
 #########################################################################################################################
-# Code to determine % of cross-reg matches that provide information on the other registry in one registry 
+# Code to determine % of potential cross-reg matches that provide information on the other registry in one registry 
+# Produces Venn diagrams
 
 # Filter for crossregs between CT and EUCTR
 ct_euctr_reg_linked <- trn_filtered |>
@@ -205,10 +196,11 @@ ct_euctr_reg_linked <- trn_filtered |>
 #  left_join(manual_validation, by = "standardized_pair") |>
   #filter(is_true_crossreg)
 
-# Filter for crossregs between CT and EUCTR that were title matched
-ct_euctr_title_matched <- trn_filtered |>
-  filter(non_euctr_registry == "ClinicalTrials.gov") |>
-  filter(is_title_matched)
+# Filter for crossregs between CT and EUCTR that were title matched 
+# (may be commented out, depending on whether you wish to include it in the Venn diagram)
+#ct_euctr_title_matched <- trn_filtered |>
+#  filter(non_euctr_registry == "ClinicalTrials.gov") |>
+#  filter(is_title_matched)
 
 # Count how many EUCTR trials mention the corresponding CT number in their registry
 ct_euctr_mention <- ct_euctr_reg_linked |>
@@ -216,18 +208,15 @@ ct_euctr_mention <- ct_euctr_reg_linked |>
   select(standardized_pair)
 
 # Count how many CT trials mention the corresponding EUCTR number in their registry
-
 euctr_ct_mention <- ct_euctr_reg_linked |>
   filter((registry1 == "ClinicalTrials.gov" & trn2inreg1 == TRUE) | (registry2 == "ClinicalTrials.gov" & trn1inreg2 == TRUE)) |>
   select(standardized_pair)
 
 # Count how many match on title
 ct_euctr_title_match_count <- sum(replace_na(ct_euctr_reg_linked$is_title_matched, FALSE))
-
 ct_euctr_title_match_percentage <- (ct_euctr_title_match_count/ nrow(ct_euctr_reg_linked) ) * 100
 
-
-# Create the Venn Diagram
+# Create the CT-EUCTR Venn Diagram
 ct_euctr_venn <- list(
   "CT Number mentioned in EUCTR" = ct_euctr_mention$standardized_pair,
   "EUCTR Number mentioned in CT" = euctr_ct_mention$standardized_pair #,
@@ -236,7 +225,7 @@ ct_euctr_venn <- list(
 
 base_ct_euctr_venn <- ggvenn(
   ct_euctr_venn,
-  fill_color = c("#0073C2FF", "#EFC000FF"),
+  fill_color = c("#0073C2FF", "#EFC000FF"), # If you need to include title matching in the Venn, you will need to specify a 3rd color and comment out auto_scale = TRUE
   stroke_size = 0.5,
   auto_scale = TRUE,
   set_name_size = 0 # Turn off default labels for custom handling
@@ -252,7 +241,6 @@ base_ct_euctr_venn +
        #    fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
 
 
-
 # Filter for crossregs between DRKS and EUCTR
 drks_euctr_reg_linked <- trn_filtered |>
 #  standardize_pairs() |>
@@ -262,9 +250,10 @@ drks_euctr_reg_linked <- trn_filtered |>
 #  filter(is_true_crossreg)
 
 # Filter for crossregs between CT and EUCTR that were title matched
-drks_euctr_title_matched <- trn_filtered |>
-  filter(non_euctr_registry == "DRKS") |>
-  filter(is_title_matched)
+# (may be commented out, depending on whether you wish to include it in the Venn diagram)
+#drks_euctr_title_matched <- trn_filtered |>
+#  filter(non_euctr_registry == "DRKS") |>
+#  filter(is_title_matched)
 
 # Count how many EUCTR trials mention the corresponding DRKS number in their registry
 drks_euctr_mention <- drks_euctr_reg_linked |>
@@ -279,7 +268,6 @@ euctr_drks_mention <- drks_euctr_reg_linked |>
 
 # Count how many match on title
 drks_euctr_title_match_count <- sum(replace_na(drks_euctr_reg_linked$is_title_matched, FALSE))
-
 drks_euctr_title_match_percentage <- (drks_euctr_title_match_count/ nrow(drks_euctr_reg_linked) ) * 100
 
 # Create the Venn Diagram
@@ -291,7 +279,7 @@ drks_euctr_venn <- list(
 
 base_drks_euctr_venn <- ggvenn(
   drks_euctr_venn,
-  fill_color = c("#0073C2FF", "#EFC000FF"),
+  fill_color = c("#0073C2FF", "#EFC000FF"), # If you need to include title matching in the Venn, you will need to specify a 3rd color and comment out auto_scale = TRUE
   stroke_size = 0.5,
   auto_scale = TRUE,
   set_name_size = 0 # Turn off default labels for custom handling
@@ -307,7 +295,7 @@ base_drks_euctr_venn +
     #       fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
 
 #########################################################################################################################
-# Continue making upset plot:
+# Prepare data for upset plots
 
 # Make trn_filtered readable for ggupset package
 trn_combos <-
@@ -334,30 +322,6 @@ trn_combos <-
   select(-value, -link) |>
   distinct()
 
-# Make validated_crossreg readable for ggupset package 
-
-upset_validated_crossreg <- validated_crossreg |>
-  select(trn1,
-         trn2,
-         non_euctr_registry,
-         is_title_matched,
-         at_least_one_pub,
-         bidirectional,
-         unidirectional
-  ) |>
-  rename(
-    "Title matched" = is_title_matched,
-    "Publication link" = at_least_one_pub,
-    "Bidirectional link" = bidirectional,
-    "Undirectional link" = unidirectional
-  ) |>
-  pivot_longer(cols = -c(trn1, trn2, non_euctr_registry), names_to = "link") |>
-  filter(value == TRUE) |>
-  group_by(trn1, trn2) |>
-  mutate(links = list(link)) |>
-  ungroup() |>
-  select(-value, -link) |>
-  distinct()
 
 # Filter for only DRKS analysis
 trn_combos_drks <- trn_combos |>
@@ -367,72 +331,7 @@ trn_combos_drks <- trn_combos |>
 trn_combos_ctgov <- trn_combos |>
   filter(non_euctr_registry == "ClinicalTrials.gov")
 
-############################################################################
-# Upset plot for manually validated TRN pairs
-# Will show false positivity rate per category
-
-
-manual_validation_upset <- read.csv("data/manual_validation_processed.csv") |>
-  standardize_pairs() |>
-  select(standardized_pair, is_true_crossreg)
-
-
-# Make trn_filtered readable for ggupset package, 
-# Retain standardized_pair so we can match it to manual_validation_upset
-trn_combos_validated <-
-  trn_filtered |>
-  select(trn1,
-         trn2,
-         non_euctr_registry,
-         is_title_matched,
-         at_least_one_pub,
-         bidirectional,
-         unidirectional, 
-         standardized_pair
-  ) |>
-  rename(
-    "Title matched" = is_title_matched,
-    "Publication link" = at_least_one_pub,
-    "Bidirectional link" = bidirectional,
-    "Undirectional link" = unidirectional
-  ) |>
-  pivot_longer(cols = -c(trn1, trn2, non_euctr_registry, standardized_pair), names_to = "link") |>
-  filter(value == TRUE) |>
-  group_by(trn1, trn2) |>
-  mutate(links = list(link)) |>
-  ungroup() |>
-  select(-value, -link) |>
-  distinct()
-
-# Join false positivity information to create new upset
-manual_validation_upset <- manual_validation_upset |>
-  left_join(trn_combos_validated, by = "standardized_pair") |>
-  mutate(links = ifelse(standardized_pair == " 2010-023688-16_NCT01326767", "Bidirectional link", links)) # Manually change `links` back to `bidirectional` for row "2010-023688-16_NCT01326767", not sure why it changes at all
-  
-# Upset plot showing manually validated TRN pairs, with false positivity displayed
-
-manual_validation_plot <- manual_validation_upset |> 
-  ggplot(aes(x = links, fill = is_true_crossreg)) + 
-  geom_bar(position = "stack") + 
-  ggtitle("Manually validated pairs combinations, with false positive count shown ") + 
-  geom_text(
-    stat = "count", 
-    aes(label = after_stat(count), group = is_true_crossreg), 
-    position = position_stack(vjust = 0.5) # Place labels in the middle of each section
-  ) + 
-  scale_x_upset(n_intersections = 20) + 
-  scale_fill_manual(values = c("TRUE" = "#0073C2FF", "FALSE" = "#EFC000FF"),
-                    name = "Confirmed as a true cross-registration") +
-  ylab("Number of pairs") + 
-  xlab("Linking combinations") + 
-  theme(
-    legend.background = element_rect(color = "transparent", fill = "transparent"), 
-    legend.position = c(.85, .9), 
-    axis.title.y = element_text(size = 11)
-  )
-
-
-############################################################################
+####################################################################################
 
 # Upset plot showing all TRN pairs in analysis set
 overall_crossreg_combinations <- trn_combos |>
@@ -455,22 +354,6 @@ overall_crossreg_combinations_proportions <- trn_combos |>
   geom_bar(aes(y = after_stat(count / 625 * 100))) +  # Set y as proportion for correct scaling
   ggtitle("Overall Combinations Proportions") +
   geom_text(stat = 'count', aes(y = after_stat(count / 625 * 100), label = sprintf("%.1f%%", after_stat(count / 625 * 100))), vjust = -1) + # Display as percentages
-  scale_x_upset(n_intersections = 20) +
-  scale_y_continuous(limits = c(0, 30), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
-  ylab("Proportion of pairs (%)") +  
-  xlab("Linking combinations") +
-  theme(
-    legend.background = element_rect(color = "transparent", fill = "transparent"),
-    legend.position = c(.85, .9),
-    axis.title.y = element_text(size = 11)
-  )
-
-# Upset plot showing all validated, TRUE TRN pairs as proportions
-validated_crossreg_combinations_proportions <- upset_validated_crossreg |>
-  ggplot(aes(x = links)) +
-  geom_bar(aes(y = after_stat(count / 233 * 100))) +  # Set y as proportion for correct scaling
-  ggtitle("Validated and True Crossreg Combinations Proportions") +
-  geom_text(stat = 'count', aes(y = after_stat(count / 233 * 100), label = sprintf("%.1f%%", after_stat(count / 233 * 100))), vjust = -1) + # Display as percentages
   scale_x_upset(n_intersections = 20) +
   scale_y_continuous(limits = c(0, 30), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
   ylab("Proportion of pairs (%)") +  
