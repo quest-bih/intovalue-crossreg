@@ -157,6 +157,56 @@ false_crossreg <- false_crossreg_standardized |>
 #  )
 
 ################################################################################
+# Upset plot for all trials that were screened and CONFIRMED, across all links (not just publications)
+
+# Full table containing only screened and confirmed crossregs
+validated_crossreg <- trn_filtered |>
+  left_join(manual_validation |> standardize_pairs() |> select(standardized_pair, is_true_crossreg), by = "standardized_pair") |> 
+  mutate(is_true_crossreg = ifelse(standardized_pair == "2010-023688-16_NCT01326767", TRUE, is_true_crossreg))|> # Manually change is_true_crossreg back to TRUE for row "2010-023688-16_NCT01326767", not sure why it changes at all
+  filter(is_true_crossreg)
+
+# Make validated_crossreg readable for ggupset package 
+upset_validated_crossreg <- validated_crossreg |>
+  select(trn1,
+         trn2,
+         non_euctr_registry,
+         is_title_matched,
+         at_least_one_pub,
+         bidirectional,
+         unidirectional
+  ) |>
+  rename(
+    "Title matched" = is_title_matched,
+    "Publication link" = at_least_one_pub,
+    "Bidirectional link" = bidirectional,
+    "Undirectional link" = unidirectional
+  ) |>
+  pivot_longer(cols = -c(trn1, trn2, non_euctr_registry), names_to = "link") |>
+  filter(value == TRUE) |>
+  group_by(trn1, trn2) |>
+  mutate(links = list(link)) |>
+  ungroup() |>
+  select(-value, -link) |>
+  distinct()
+
+# Upset plot showing all screened and CONFIRMED TRN pairs as proportions
+validated_crossreg_combinations_proportions <- upset_validated_crossreg |>
+  ggplot(aes(x = links)) +
+  geom_bar(aes(y = after_stat(count / 233 * 100))) +  # Set y as proportion for correct scaling
+  ggtitle("Validated and True Crossreg Combinations Proportions") +
+  geom_text(stat = 'count', aes(y = after_stat(count / 233 * 100), label = sprintf("%.1f%%", after_stat(count / 233 * 100))), vjust = -1) + # Display as percentages
+  scale_x_upset(n_intersections = 20) +
+  scale_y_continuous(limits = c(0, 30), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
+  ylab("Proportion of pairs (%)") +  
+  xlab("Linking combinations") +
+  theme(
+    legend.background = element_rect(color = "transparent", fill = "transparent"),
+    legend.position = c(.85, .9),
+    axis.title.y = element_text(size = 11)
+  )
+
+
+################################################################################
 # Upset plot for trials linked by publication, with false positive count
 
 manual_validated_standardized <- manual_validation |>
