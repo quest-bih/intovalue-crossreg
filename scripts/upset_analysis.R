@@ -299,9 +299,9 @@ base_drks_euctr_venn <- ggvenn(
 
 # Add custom labels with text boxes
 base_drks_euctr_venn +
-  annotate("label", x = -1.2, y = 1.1, label = "DRKS Number mentioned in EUCTR",
+  annotate("label", x = -1.1, y = 0, label = "DRKS Number mentioned in EUCTR",
            fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) +
-  annotate("label", x = 1.2, y = 1.1, label = "EUCTR Number mentioned in DRKS",
+  annotate("label", x = 1.2, y = 1, label = "EUCTR Number mentioned in DRKS",
            fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) # +
  # annotate("label", x = 0, y = -1.1, label = "Trials matched on title",
     #       fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
