@@ -114,44 +114,47 @@ false_crossreg <- false_crossreg_standardized |>
 
 ################################################################################
 # Upset plot for trials linked by publication
+# The plot here is for trial pairs linked by publications that were screened and CONFIRMED as true cross-registrations
+# The other publication upset also includes pairs that were not true cross-registrations
+# This plot is deprecated and has been commented out here
 
 
 #Change format to make friendlier for ggupset
-upset_pub_crossregs <-
-  pub_crossregs |>
-  select(trn1,
-         trn2,
-         trn_in_pub_si,
-         trn_in_pub_abs,
-         trn_in_pub_ft,
-  ) |>
-  rename(
-    "trn in SI" = trn_in_pub_si,
-    "trn in abstract" = trn_in_pub_abs,
-    "trn in full text" = trn_in_pub_ft,
-  ) |>
-  pivot_longer(cols = -c(trn1, trn2), names_to = "link") |>
-  filter(value == TRUE) |>
-  group_by(trn1, trn2) |>
-  mutate(links = list(link)) |>
-  ungroup() |>
-  select(-value, -link) |>
-  distinct()
+#upset_pub_crossregs <-
+#  pub_crossregs |>
+#  select(trn1,
+#         trn2,
+#         trn_in_pub_si,
+#         trn_in_pub_abs,
+#         trn_in_pub_ft,
+#  ) |>
+#  rename(
+#    "trn in SI" = trn_in_pub_si,
+#    "trn in abstract" = trn_in_pub_abs,
+#    "trn in full text" = trn_in_pub_ft,
+#  ) |>
+#  pivot_longer(cols = -c(trn1, trn2), names_to = "link") |>
+#  filter(value == TRUE) |>
+#  group_by(trn1, trn2) |>
+#  mutate(links = list(link)) |>
+#  ungroup() |>
+#  select(-value, -link) |>
+#  distinct()
 
 # Plot upset
-pub_linking_combinations <- upset_pub_crossregs |>
-  ggplot(aes(x=links)) +
-  geom_bar() +
-  ggtitle("Overall Combinations") +
-  geom_text(stat='count', aes(label=after_stat(count)), vjust=-1) +
-  scale_x_upset(n_intersections = 20) +
-  ylab("Number of pairs") +
-  xlab("Linking combinations") +
-  theme(
-    legend.background = element_rect(color = "transparent", fill = "transparent"),
-    legend.position.inside = c(.85, .9),
-    axis.title.y = element_text(size = 11)
-  )
+#pub_linking_combinations <- upset_pub_crossregs |>
+#  ggplot(aes(x=links)) +
+#  geom_bar() +
+#  ggtitle("Overall Combinations") +
+#  geom_text(stat='count', aes(label=after_stat(count)), vjust=-1) +
+#  scale_x_upset(n_intersections = 20) +
+#  ylab("Number of pairs") +
+#  xlab("Linking combinations") +
+#  theme(
+#    legend.background = element_rect(color = "transparent", fill = "transparent"),
+#    legend.position.inside = c(.85, .9),
+#    axis.title.y = element_text(size = 11)
+#  )
 
 ################################################################################
 # Upset plot for trials linked by publication, with false positive count
