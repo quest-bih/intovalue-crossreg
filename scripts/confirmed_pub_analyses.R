@@ -10,10 +10,7 @@ library(cli)
 library(ggupset)
 library(ggplot2)
 
-# Load data 
-manual_validation <- read.csv("data/manual_validation_processed.csv")
-trn_manual_checks <- read_rds("data/crossreg_pipeline_output.rds")
-
+################################################################################################
 # Function to standardize trial pairs, give them unique identifier
 standardize_pairs <- function(df) {
   df |>
@@ -24,6 +21,37 @@ standardize_pairs <- function(df) {
     ) |>
     ungroup()
 }
+################################################################################################
+
+# Load data 
+manual_validation <- read.csv("data/manual_validation_processed.csv")
+trn_manual_checks <- read_rds("data/crossreg_pipeline_output.rds")
+
+# Prepare/process tables for use
+
+trn_filtered <- trn_manual_checks |>
+  filter(priority <= 4) |>
+  filter(drks_removed == FALSE & euctr_id_in_euctr == TRUE) |>
+  filter(trn2 != "2008-004408-29")
+
+# Add registries back in
+trn_filtered <- trn_filtered |>
+  rowwise()|>
+  mutate(registry1 = which_registry(trn1),
+         registry2 = which_registry(trn2))
+
+trn_filtered <- standardize_pairs(trn_filtered)
+trn_filtered <- trn_filtered |>
+  mutate(
+    bidirectional = if_else(trn1inreg2 & trn2inreg1, TRUE, FALSE),
+    is_title_matched = if_else(is.na(is_title_matched), FALSE, is_title_matched),
+    non_euctr_registry = ifelse(registry1 == "EudraCT", registry2, registry1) #,
+    # unidirectional = if_else((trn1inreg2 | trn2inreg1), TRUE, FALSE)
+  ) |>
+  mutate(
+    unidirectional = if_else((trn1inreg2 | trn2inreg1) & !bidirectional, TRUE, FALSE),
+  )
+
 
 # Filter for true cross-registrations
 confirmed_crossreg_standardized <- manual_validation |>
@@ -207,3 +235,68 @@ pub_linking_combinations_false_positive <- upset_manual_false_positive |>
     legend.position = c(.85, .9),
     axis.title.y = element_text(size = 11)
   )
+
+############################################################################
+# Upset plot for manually validated TRN pairs
+# Will show false positivity rate per category
+
+manual_validation_upset <- manual_validation |>
+  standardize_pairs() |>
+  select(standardized_pair, is_true_crossreg)
+
+# Make trn_filtered readable for ggupset package, 
+# Retain standardized_pair so we can match it to manual_validation_upset
+trn_combos_validated <-
+  trn_filtered |>
+  select(trn1,
+         trn2,
+         non_euctr_registry,
+         is_title_matched,
+         at_least_one_pub,
+         bidirectional,
+         unidirectional, 
+         standardized_pair
+  ) |>
+  rename(
+    "Title matched" = is_title_matched,
+    "Publication link" = at_least_one_pub,
+    "Bidirectional link" = bidirectional,
+    "Undirectional link" = unidirectional
+  ) |>
+  pivot_longer(cols = -c(trn1, trn2, non_euctr_registry, standardized_pair), names_to = "link") |>
+  filter(value == TRUE) |>
+  group_by(trn1, trn2) |>
+  mutate(links = list(link)) |>
+  ungroup() |>
+  select(-value, -link) |>
+  distinct()
+
+# Join false positivity information to create new upset
+manual_validation_upset <- manual_validation_upset |>
+  left_join(trn_combos_validated, by = "standardized_pair") |>
+  mutate(links = ifelse(standardized_pair == " 2010-023688-16_NCT01326767", "Bidirectional link", links)) # Manually change `links` back to `bidirectional` for row "2010-023688-16_NCT01326767", not sure why it changes at all
+
+# Upset plot showing manually validated TRN pairs, with false positivity displayed
+
+manual_validation_plot <- manual_validation_upset |> 
+  ggplot(aes(x = links, fill = is_true_crossreg)) + 
+  geom_bar(position = "stack") + 
+  ggtitle("Manually validated pairs combinations, with false positive count shown ") + 
+  geom_text(
+    stat = "count", 
+    aes(label = after_stat(count), group = is_true_crossreg), 
+    position = position_stack(vjust = 0.5) # Place labels in the middle of each section
+  ) + 
+  scale_x_upset(n_intersections = 20) + 
+  scale_fill_manual(values = c("TRUE" = "#0073C2FF", "FALSE" = "#EFC000FF"),
+                    name = "Confirmed as a true cross-registration") +
+  ylab("Number of pairs") + 
+  xlab("Linking combinations") + 
+  theme(
+    legend.background = element_rect(color = "transparent", fill = "transparent"), 
+    legend.position = c(.85, .9), 
+    axis.title.y = element_text(size = 11)
+  )
+
+
+############################################################################
