@@ -6,3 +6,6 @@
 # mac OS
 .DS_Store
 scripts/.DS_Store
+
+# Raw registry data for prospective registration
+data/prereg_raw
