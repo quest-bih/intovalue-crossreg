@@ -280,7 +280,7 @@ pub_linking_combinations_false_positive <- upset_manual_false_positive |>
   scale_x_upset(n_intersections = 20) + 
   ylab("Number of pairs") + 
   xlab("Linking combinations") + 
-  scale_fill_manual(values = c("TRUE" = "#0073C2FF", "FALSE" = "#EFC000FF"),
+  scale_fill_manual(values = c("TRUE" = "#B3EBF2", "FALSE" = "#009E73"),
                     name = "Confirmed as a true cross-registration") +
   theme(
     legend.background = element_rect(color = "transparent", fill = "transparent"), 
@@ -339,7 +339,7 @@ manual_validation_plot <- manual_validation_upset |>
     position = position_stack(vjust = 0.5) # Place labels in the middle of each section
   ) + 
   scale_x_upset(n_intersections = 20) + 
-  scale_fill_manual(values = c("TRUE" = "#0073C2FF", "FALSE" = "#EFC000FF"),
+  scale_fill_manual(values = c("TRUE" = "#B3EBF2", "FALSE" = "#009E73"),
                     name = "Confirmed as a true cross-registration") +
   ylab("Number of pairs") + 
   xlab("Linking combinations") + 
