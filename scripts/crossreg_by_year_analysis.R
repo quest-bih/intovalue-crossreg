@@ -77,7 +77,6 @@ ggplot(summary_by_year, aes(x = completion_year, y = count, fill = crossreg_stat
     labels = as.character(2009:2017) # Convert breaks to discrete labels
   ) +
   labs(
-    title = "Total Trials and Proportion of IntoValue Trials Potentially Cross-Registered in EUCTR by Year",
     x = "Completion Year",
     y = "Number of Trials",
     fill = "Potential EUCTR cross-registration"
