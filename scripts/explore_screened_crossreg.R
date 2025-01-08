@@ -194,9 +194,9 @@ upset_validated_crossreg <- validated_crossreg |>
 # Upset plot showing all screened and CONFIRMED TRN pairs as proportions
 validated_crossreg_combinations_proportions <- upset_validated_crossreg |>
   ggplot(aes(x = links)) +
-  geom_bar(aes(y = after_stat(count / 233 * 100))) +  # Set y as proportion for correct scaling
+  geom_bar(aes(y = after_stat(count / nrow(upset_validated_crossreg) * 100))) +  # Set y as proportion for correct scaling
   ggtitle("Validated and True Crossreg Combinations Proportions") +
-  geom_text(stat = 'count', aes(y = after_stat(count / 233 * 100), label = sprintf("%.1f%%", after_stat(count / 233 * 100))), vjust = -1) + # Display as percentages
+  geom_text(stat = 'count', aes(y = after_stat(count / nrow(upset_validated_crossreg) * 100), label = sprintf("%.1f%%", after_stat(count / nrow(upset_validated_crossreg) * 100))), vjust = -1) + # Display as percentages
   scale_x_upset(n_intersections = 20) +
   scale_y_continuous(limits = c(0, 30), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
   ylab("Proportion of pairs (%)") +  
