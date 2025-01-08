@@ -48,18 +48,17 @@ trn_filtered <- standardize_pairs(trn_filtered)
 # ie. no pair marked as bidirectional will also be marked as unidirectional
 
 # in order to obtain a table with all bidirectional pairs also marked as unidirectional:
-# uncomment the code in the first mutate block
-# comment out the second mutate block
+# uncomment the line with `unidirectional = if_else((trn1inreg2 | trn2inreg1), TRUE, FALSE)`
+# comment out the line with `unidirectional = if_else((trn1inreg2 | trn2inreg1) & !bidirectional, TRUE, FALSE)`
+
 trn_filtered <- trn_filtered |>
   mutate(
     bidirectional = if_else(trn1inreg2 & trn2inreg1, TRUE, FALSE),
     is_title_matched = if_else(is.na(is_title_matched), FALSE, is_title_matched),
-    non_euctr_registry = ifelse(registry1 == "EudraCT", registry2, registry1) #,
+    non_euctr_registry = if_else(registry1 == "EudraCT", registry2, registry1) ,
+    unidirectional = if_else((trn1inreg2 | trn2inreg1) & !bidirectional, TRUE, FALSE)
     # unidirectional = if_else((trn1inreg2 | trn2inreg1), TRUE, FALSE)
-  ) |>
-  mutate(
-    unidirectional = if_else((trn1inreg2 | trn2inreg1) & !bidirectional, TRUE, FALSE),
-  )
+  ) 
 
 
 #################################################################################################
