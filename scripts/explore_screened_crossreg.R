@@ -2,15 +2,9 @@
 # previously identified potential cross registration pairs were classified as either true cross registrations or false positive pairs
 
 library(tidyverse)
-library(VennDiagram)
-library(lubridate)
 library(here)
-library(fs)
-library(stringr)
 library(ctregistries)
-library(cli)
 library(ggupset)
-library(ggplot2)
 
 ################################################################################################
 # Function to standardize trial pairs, give them unique identifier
