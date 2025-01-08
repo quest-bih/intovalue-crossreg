@@ -26,8 +26,8 @@ standardize_pairs <- function(df) {
 ################################################################################################
 
 # Load data 
-manual_validation <- read.csv("data/manual_validation_processed.csv")
-trn_manual_checks <- read_rds("data/crossreg_pipeline_output.rds")
+manual_validation <- read.csv(here("data", "manual_validation_processed.csv"))
+trn_manual_checks <- read_rds(here("data", "crossreg_pipeline_output.rds"))
 
 # Prepare/process tables for use
 
