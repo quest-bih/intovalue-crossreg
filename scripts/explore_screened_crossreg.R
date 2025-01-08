@@ -45,17 +45,17 @@ trn_filtered <- trn_filtered |>
          registry2 = ctregistries::which_registry(trn2))
 
 trn_filtered <- standardize_pairs(trn_filtered)
+
 trn_filtered <- trn_filtered |>
   mutate(
     bidirectional = if_else(trn1inreg2 & trn2inreg1, TRUE, FALSE),
     is_title_matched = if_else(is.na(is_title_matched), FALSE, is_title_matched),
-    non_euctr_registry = ifelse(registry1 == "EudraCT", registry2, registry1) #,
+    non_euctr_registry = if_else(registry1 == "EudraCT", registry2, registry1) #,
     # unidirectional = if_else((trn1inreg2 | trn2inreg1), TRUE, FALSE)
   ) |>
   mutate(
     unidirectional = if_else((trn1inreg2 | trn2inreg1) & !bidirectional, TRUE, FALSE),
   )
-
 
 # Filter for true cross-registrations
 #confirmed_crossreg_standardized <- manual_validation |>
