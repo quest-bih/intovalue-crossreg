@@ -108,10 +108,8 @@ false_crossreg_standardized <- manual_validation |>
   standardize_pairs() |>
   select(standardized_pair, is_true_crossreg)
 
-# Join true crossreg with larger table by standardized_pair
 false_crossreg <- false_crossreg_standardized |>
-  left_join(trn_manual_checks_standardized, by = "standardized_pair") |>
-  filter(!is_true_crossreg & priority == 4)
+  left_join(trn_filtered, by = "standardized_pair")
 
 # Visual inspection of table shows that all 8 are only connected by trn2_in_pub_ft
 # In this case, 8 EUCTR numbers were mentioned in the full text of publications associated with 8 IntoValue TRNs
