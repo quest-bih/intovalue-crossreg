@@ -51,6 +51,14 @@ trn_filtered <- trn_filtered |>
 
 trn_filtered <- standardize_pairs(trn_filtered)
 
+# Add columns to simplify identifying bidirectional/unidirectional linking, make upset plot easier to build
+# Add column to identify non-EUCTR registry
+# This version of the table separates bidirectional and unidirectional trial pairs
+# ie. no pair marked as bidirectional will also be marked as unidirectional
+
+# in order to obtain a table with all bidirectional pairs also marked as unidirectional:
+# uncomment the code in the first mutate block
+# comment out the second mutate block
 trn_filtered <- trn_filtered |>
   mutate(
     bidirectional = if_else(trn1inreg2 & trn2inreg1, TRUE, FALSE),
