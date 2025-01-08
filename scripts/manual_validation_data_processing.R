@@ -1,43 +1,103 @@
 #### MANUAL CHECKS DATA PROCESSING SCRIPT ####
 
-## Load data ##
+library(readxl)
+library(dplyr)
+library(readr)
+library(here)
 
-data <- read.csv(here::here("data", "manual_validation_raw.csv"), sep = ";")
+#### LOAD THE MANUAL VALIDATION DATASET ####
 
-## Load packages ##
-library(tidyverse)
-library(lubridate)
+# Note that this throws the following warning: "Expecting date in AD232 / R232C30: got '2012-04-31'" and converted the original date (which is invalid) '2012-04-31' to NA. 
+# We correct this to '2012-04-30' later.
+
+data <- read_xlsx(here("data", "manual_validation_raw.xlsx"),
+                  col_types = c("text", "text", "text", "text", "numeric",
+                                "text", "text", "text", "text", "text",
+                                "text", "text", "text", "text", "text",
+                                "text", "text", "text", "text", "logical",
+                                "text", "text", "text", "date", "text",
+                                "text", "text", "date", "text", "date",
+                                "text", "text", "text", "text", "text",
+                                "logical", "logical", "logical", "logical",
+                                "text"))
 
 #### RENAMING COLUMNS ####
-# Some columns had additional characters and were renamed:
-data <- data |>
+
+# Some column names in the Excel sheet have white spaces and need to be renamed
+names(data) <- str_replace_all(names(data), c(" " = "."))
+
+data <- data |> 
   rename(has_summary_results_reg1_main = has_summary_results_reg1._main,
          has_summary_results_reg1_sensitivity = has_summary_results_reg1._sensitivity,
          has_summary_results_reg2_sensitivity = has_summary_results_reg2._sensitivity)
 
-#### CORRECTING INVALID DATE ####
-# After analyzing missing data in both completion_month_year_reg1 and completion_month_year_reg2
-# one case in completion_month_year_reg2 was identified as a error in recording: 2012-04-31, April only has 30 days. 
-# the correct day on the registry is 2012-04, and per protocol we assigned the last day of the month for cases where
-# only year and month was recorded. The value should be then replaced with 2012-04-30
+#### IMPLEMENT CORRECTIONS ####
 
-#identify row index of the invalid date
-row_index <- which(data$completion_date_reg2 == "2012-04-31")
+# Correct date for NCT01510704 from NA to 2012-04-30
+data[data$trn2 == "NCT01510704",]$completion_date_reg2 <- as.Date("2012-04-30", format = "%Y-%m-%d")
 
-#replace value with new one
-data$completion_date_reg2[row_index] <- "2012-04-30"
+# For NCT00351403 - 2006-000358-38, `completion_date_type_reg1` should be changed from “Global” to “Actual”
+data[data$trn1 == "NCT00351403",]$completion_date_type_reg1 <- "Actual"
 
-#### CREATING COMPLETION MONTH-YEAR COLUMNS ####
-# For a discrepancy analysis, the decision was to compare completion date between registries at the level of year-month, excluding the day. 
-# two columns extracted this information for the future analysis.
+# For 2009-017520-88 - NCT01231854, `has_summary_results_reg1 _main` should be FALSE
+data[data$trn1 == "2009-017520-88",]$has_summary_results_reg1_main <- FALSE
 
-data <- data |>
+#For 2012-004555-36 - NCT01797861, information regarding “no DE protocol available” needs to be moved from the population_comment column to the general_comment column
+
+  # Paste text in general_comment column
+data$general_comment[data$trn1 == "2012-004555-36"] <- paste(data$population_comment[data$trn1 == "2012-004555-36"],
+                                                             data$general_comment[data$trn1 == "2012-004555-36"])
+  # Delete text from population_comment column
+data$population_comment[data$trn1 == "2012-004555-36"] <- ""
+
+# For 2009-014076-22 - NCT01065246, value from general_comment (no DE protocol available) needs to be moved to the correct row: 2012-002699-14 - NCT01883531
+
+  # Paste text in the right row
+data$general_comment[data$trn1 == "2012-002699-14"] <- paste(data$general_comment[data$trn1 == "2009-014076-22"],
+                                                             data$general_comment[data$trn1 == "2012-002699-14"])
+  # Delete comment from population_comment column 
+data$general_comment[data$trn1 == "2009-014076-22"] <- ""
+
+#### CREATE ROUNDED COMPLETION DATE COLUMNS FOR DISCREPANCY ANALYSIS ####
+
+data <- data |> 
   mutate(
-    completion_month_year_reg1 = format(as.Date(completion_date_reg1, format = "%Y-%m-%d"), "%Y-%m"),
-    completion_month_year_reg2 = format(as.Date(completion_date_reg2, format = "%Y-%m-%d"), "%Y-%m")
-  ) |>
+    completion_month_year_reg1 = lubridate::floor_date(completion_date_reg1, unit = "month"),
+    completion_month_year_reg2 = lubridate::floor_date(completion_date_reg2, unit = "month")
+  ) |> 
   relocate(completion_month_year_reg1, .after = completion_date_reg1) |>
   relocate(completion_month_year_reg2, .after = completion_date_reg2)
+
+#### DERIVE OVERALL RECRUITMENT STATUS ####
+
+# Remove manually encoded overall recruitment status columns
+data <- data |> 
+  select (
+    -overall_recruitment_status_reg1,
+    -overall_recruitment_status_reg2
+  ) |>
+  # Re-generate these columns computationally
+  mutate(
+    overall_recruitment_status_reg1 = case_when(
+      recruitment_status_reg1 %in% c("Completed", "Prematurely Ended", "Terminated", "Recruiting complete", "Recruiting stopped") ~ "Completed",
+      recruitment_status_reg1 %in% c("Ongoing", "Temporarily Halted", "Restarted") ~ "Ongoing",
+      recruitment_status_reg1 %in% c("Unknown status") ~ "Other"
+    )
+  ) |>
+  mutate(
+    overall_recruitment_status_reg2 = case_when(
+      recruitment_status_reg2 %in% c("Completed", "Prematurely Ended", "Terminated", "Recruiting complete", "Recruiting stopped") ~ "Completed",
+      recruitment_status_reg2 %in% c("Ongoing", "Temporarily Halted", "Restarted") ~ "Ongoing",
+      recruitment_status_reg2 %in% c("Unknown status") ~ "Other"
+    )
+  ) |> 
+  relocate(overall_recruitment_status_reg1, .after = recruitment_status_reg1) |>
+  relocate(overall_recruitment_status_reg2, .after = recruitment_status_reg2)
+
+#Note: in the DRKS registry, "Recruiting complete" can be followed by either "Recruitment complete, study complete" or "Recruiting complete, study continuing".
+# for the DRKS trials reviewed, they were only the first case, and were recorded as "Recruiting complete" in the column recruitment_status_reg1 and 
+#recruitment_status_reg2.
+
 
 #### DATA TRANSFORMATION ####
 # The aim of this transformation is to mutate the columns registry1 and registry 2, so that registry1 always show EUCTR, 
