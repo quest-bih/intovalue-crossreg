@@ -1,4 +1,6 @@
-# A script to explore confirmed cross registrations that were identified through a publication 
+# A script to explore cross registrations that were further screened as true or false cross-registrations
+# previously identified potential cross registration pairs were classified as either true cross registrations or false positive pairs
+
 library(tidyverse)
 library(VennDiagram)
 library(lubridate)
