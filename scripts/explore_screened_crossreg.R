@@ -29,6 +29,11 @@ standardize_pairs <- function(df) {
 manual_validation <- read.csv(here("data", "manual_validation_processed.csv"))
 unscreened_trn_pairs<- read_rds(here("data", "crossreg_pipeline_output.rds"))
 
+# Standardize list of manually validated pairs
+manual_validated_standardized <- manual_validation |>
+  standardize_pairs() |>
+  select(standardized_pair, is_true_crossreg)
+
 # Prepare/process tables for use
 # Here, we are filtering for trials with a priority of 4 or lower (priority 4 = trial identifier mentioned in another trial's related publication), as our pilot manual review of trial pairs with priority > 4 revealed low precision for correctly identified true cross-registrations
 # Then, we filter for TRNs that have not been removed from the DRKS registry. We also filter for EUCTR TRNs that still resolve in the EUCTR registry. These steps ensure that all remaining TRN pairs can be looked up in their respective registries and screened
@@ -101,9 +106,8 @@ trn_filtered <- trn_filtered |>
 # Investigate how false positive cross-registrations are connected ( 8/9 false positives are Category 4, so this will be investigated here)
 
 # Filter for false cross-registrations
-false_crossreg_standardized <- manual_validation |>
+false_crossreg_standardized <- manual_validated_standardized |>
   filter(!is_true_crossreg) |>
-  standardize_pairs() |>
   select(standardized_pair, is_true_crossreg)
 
 false_crossreg <- false_crossreg_standardized |>
@@ -161,7 +165,7 @@ false_crossreg <- false_crossreg_standardized |>
 
 # Full table containing only screened and confirmed crossregs
 validated_crossreg <- trn_filtered |>
-  left_join(manual_validation |> standardize_pairs() |> select(standardized_pair, is_true_crossreg), by = "standardized_pair") |> 
+  left_join(manual_validated_standardized, by = "standardized_pair") |> 
   mutate(is_true_crossreg = ifelse(standardized_pair == "2010-023688-16_NCT01326767", TRUE, is_true_crossreg))|> # Manually change is_true_crossreg back to TRUE for row "2010-023688-16_NCT01326767", not sure why it changes at all
   filter(is_true_crossreg)
 
@@ -208,10 +212,6 @@ validated_crossreg_combinations_proportions <- upset_validated_crossreg |>
 
 ################################################################################
 # Upset plot for trials linked by publication, with false positive count
-
-manual_validated_standardized <- manual_validation |>
-  standardize_pairs() |>
-  select(standardized_pair, is_true_crossreg)
 
 # Filter for true cross-registrations
 manual_validated<- manual_validated_standardized |>
@@ -287,9 +287,6 @@ pub_linking_combinations_false_positive <- upset_manual_false_positive |>
 # Upset plot for manually validated TRN pairs (with all categories, not just publication linkages)
 # Will show false positivity rate per category
 
-manual_validation_upset <- manual_validation |>
-  standardize_pairs() |>
-  select(standardized_pair, is_true_crossreg)
 
 # Make trn_filtered readable for ggupset package, 
 # Retain standardized_pair so we can match it to manual_validation_upset
@@ -319,7 +316,7 @@ trn_combos_validated <-
   distinct()
 
 # Join false positivity information to create new upset
-manual_validation_upset <- manual_validation_upset |>
+manual_validation_upset <- manual_validated_standardized |>
   left_join(trn_combos_validated, by = "standardized_pair") |>
   mutate(links = ifelse(standardized_pair == " 2010-023688-16_NCT01326767", "Bidirectional link", links)) # Manually change `links` back to `bidirectional` for row "2010-023688-16_NCT01326767", not sure why it changes at all
 
