@@ -41,8 +41,8 @@ trn_filtered <- trn_manual_checks |>
 # Add registries back in
 trn_filtered <- trn_filtered |>
   rowwise()|>
-  mutate(registry1 = which_registry(trn1),
-         registry2 = which_registry(trn2))
+  mutate(registry1 = ctregistries::which_registry(trn1),
+         registry2 = ctregistries::which_registry(trn2))
 
 trn_filtered <- standardize_pairs(trn_filtered)
 trn_filtered <- trn_filtered |>
