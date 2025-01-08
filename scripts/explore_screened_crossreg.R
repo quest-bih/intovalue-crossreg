@@ -181,7 +181,7 @@ upset_validated_crossreg <- validated_crossreg |>
     "Title matched" = is_title_matched,
     "Publication link" = at_least_one_pub,
     "Bidirectional link" = bidirectional,
-    "Undirectional link" = unidirectional
+    "Unidirectional link" = unidirectional
   ) |>
   pivot_longer(cols = -c(trn1, trn2, non_euctr_registry), names_to = "link") |>
   filter(value == TRUE) |>
@@ -315,7 +315,7 @@ trn_combos_validated <-
     "Title matched" = is_title_matched,
     "Publication link" = at_least_one_pub,
     "Bidirectional link" = bidirectional,
-    "Undirectional link" = unidirectional
+    "Unidirectional link" = unidirectional
   ) |>
   pivot_longer(cols = -c(trn1, trn2, non_euctr_registry, standardized_pair), names_to = "link") |>
   filter(value == TRUE) |>
