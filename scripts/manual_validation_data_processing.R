@@ -3,6 +3,7 @@
 library(readxl)
 library(dplyr)
 library(readr)
+library(stringr)
 library(here)
 
 #### LOAD THE MANUAL VALIDATION DATASET ####
@@ -24,7 +25,7 @@ data <- read_xlsx(here("data", "manual_validation_raw.xlsx"),
 #### RENAMING COLUMNS ####
 
 # Some column names in the Excel sheet have white spaces and need to be renamed
-names(data) <- str_replace_all(names(data), c(" " = "."))
+names(data) <- stringr::str_replace_all(names(data), c(" " = "."))
 
 data <- data |> 
   rename(has_summary_results_reg1_main = has_summary_results_reg1._main,
@@ -42,7 +43,7 @@ data[data$trn1 == "NCT00351403",]$completion_date_type_reg1 <- "Actual"
 # For 2009-017520-88 - NCT01231854, `has_summary_results_reg1 _main` should be FALSE
 data[data$trn1 == "2009-017520-88",]$has_summary_results_reg1_main <- FALSE
 
-#For 2012-004555-36 - NCT01797861, information regarding “no DE protocol available” needs to be moved from the population_comment column to the general_comment column
+# For 2012-004555-36 - NCT01797861, information regarding “no DE protocol available” needs to be moved from the population_comment column to the general_comment column
 
   # Paste text in general_comment column
 data$general_comment[data$trn1 == "2012-004555-36"] <- paste(data$population_comment[data$trn1 == "2012-004555-36"],
@@ -94,67 +95,53 @@ data <- data |>
   relocate(overall_recruitment_status_reg1, .after = recruitment_status_reg1) |>
   relocate(overall_recruitment_status_reg2, .after = recruitment_status_reg2)
 
-#Note: in the DRKS registry, "Recruiting complete" can be followed by either "Recruitment complete, study complete" or "Recruiting complete, study continuing".
+# Note: in the DRKS registry, "Recruiting complete" can be followed by either "Recruitment complete, study complete" or "Recruiting complete, study continuing".
 # for the DRKS trials reviewed, they were only the first case, and were recorded as "Recruiting complete" in the column recruitment_status_reg1 and 
-#recruitment_status_reg2.
-
+# recruitment_status_reg2.
 
 #### DATA TRANSFORMATION ####
 # The aim of this transformation is to mutate the columns registry1 and registry 2, so that registry1 always show EUCTR, 
 # and that registry2 shows either ClinicalTrials.gov or DRKS. For this, all the columns that refer to the registries will 
 # also have to be flipped.
 
-# Columns that need to be modified: 
-# trn1, trn2, registry1, registry2, completion_date_reg1, completion_date_type_reg1, completion_month_year_reg1, completion_month_year_reg2,
-# completion_date_type_reg2, completion_month_year_reg2, completion_month_year_reg2, recruitment_status_reg1, overall_recruitment_status_reg1,
-# recruitment_status_reg2, overall_recruitment_status_reg2, has_summary_results_reg1_main, has_summary_results_reg1_sensitivity,
+# Columns that need to be flipped: 
+# trn1, trn2, registry1, registry2, 
+# completion_date_reg1, completion_date_type_reg1, completion_month_year_reg1, 
+# completion_date_reg2, completion_date_type_reg2, completion_month_year_reg2,
+# recruitment_status_reg1, overall_recruitment_status_reg1,
+# recruitment_status_reg2, overall_recruitment_status_reg2, 
+# has_summary_results_reg1_main, has_summary_results_reg1_sensitivity,
 # has_summary_results_reg2_main, has_summary_results_reg2_sensitivity
 
-#SPLIT THE DATASET
-#extract data to transform
+# SPLIT THE DATASET
+# Extract data to transform
 drks_ctgov_data <- data |> filter(registry1 != "EUCTR")
 
-#keep rows in data where registry1 == EUCTR
+# Keep rows in data where registry1 == EUCTR
 euctr_data <- data |> filter(registry1 == "EUCTR") 
 
-#CREATE FUNCTION FOR COLUMN FLIP
-flip_columns <- function(data, col1, col2, col1_position = NULL, col2_position = NULL) {
+# CREATE FUNCTION FOR COLUMN FLIP
+flip_columns <- function(data, col1, col2) {
   data |>
     mutate(
-      !!paste0(col1, "_new") := !!sym(col2),         #create temporary columns to host the data
-      !!paste0(col2, "_new") := !!sym(col1)) |>
-    select(-all_of(c(col1, col2))) |>                #drop old columns
-    relocate(
-      !!sym(paste0(col1, "_new")),                   #relocate columns in new order
-      .before = all_of(col1_position)) |>
-    relocate(
-      !!sym(paste0(col2, "_new")),                
-      .after = all_of(col2_position)) |>
-    rename(
-      !!col1 := !!sym(paste0(col1, "_new")),         #rename to original column name
-      !!col2 := !!sym(paste0(col2, "_new")))
+      temp = !!sym(col1),   # Temporarily store the value of col1
+      !!col1 := !!sym(col2), # Assign col2 to col1
+      !!col2 := temp         # Assign the temporary value to col2
+    ) |>
+    select(-temp)           # Remove the temporary column
 }
 
-#APPLYING FUNCTION
+# APPLYING FUNCTION
 data_transformed <- drks_ctgov_data |>
-  flip_columns("trn1", "trn2", 
-               col1_position = 1, col2_position = "trn1_new") |>
-  flip_columns("registry1", "registry2", 
-               col1_position = "trn2", col2_position = "registry1_new") |>
-  flip_columns("completion_date_reg1", "completion_date_reg2", 
-               col1_position = "second_rater_comment", col2_position = "completion_date_type_reg1") |>
-  flip_columns("completion_month_year_reg1", "completion_month_year_reg2", 
-               col1_position = "completion_date_reg1", col2_position = "completion_date_reg2") |>
-  flip_columns("completion_date_type_reg1", "completion_date_type_reg2", 
-               col1_position = "completion_month_year_reg1", col2_position = "completion_month_year_reg2") |>
-  flip_columns("recruitment_status_reg1", "recruitment_status_reg2", 
-               col1_position = "completion_date_type_reg2", col2_position = "overall_recruitment_status_reg1") |>
-  flip_columns("overall_recruitment_status_reg1", "overall_recruitment_status_reg2", 
-               col1_position = "recruitment_status_reg1", col2_position = "recruitment_status_reg2") |>
-  flip_columns("has_summary_results_reg1_main", "has_summary_results_reg2_main", 
-               col1_position = "overall_recruitment_status_reg2", col2_position = "has_summary_results_reg1_main_new") |>
-  flip_columns("has_summary_results_reg1_sensitivity", "has_summary_results_reg2_sensitivity", 
-               col1_position = "has_summary_results_reg2_main", col2_position = "has_summary_results_reg1_sensitivity_new")
+  flip_columns("trn1", "trn2") |>
+  flip_columns("registry1", "registry2") |>
+  flip_columns("completion_date_reg1", "completion_date_reg2") |>
+  flip_columns("completion_month_year_reg1", "completion_month_year_reg2") |>
+  flip_columns("completion_date_type_reg1", "completion_date_type_reg2") |>
+  flip_columns("recruitment_status_reg1", "recruitment_status_reg2") |>
+  flip_columns("overall_recruitment_status_reg1", "overall_recruitment_status_reg2") |>
+  flip_columns("has_summary_results_reg1_main", "has_summary_results_reg2_main") |>
+  flip_columns("has_summary_results_reg1_sensitivity", "has_summary_results_reg2_sensitivity")
 
 #### QUALITY CHECK OF TRANSFORMATION ####
 # The idea is to compare the columns from data_transformed with the columns from drks_ctgov_data (before transformation)
@@ -169,7 +156,7 @@ compare_columns <- function(data1, col1, data2, col2) {
 }
 
 #APPLYING FUNCTION
-#define column pairs
+# Define column pairs
 column_pairs <- list(
   c("trn1", "trn2"),
   c("registry1", "registry2"),
@@ -182,14 +169,15 @@ column_pairs <- list(
   c("has_summary_results_reg1_sensitivity", "has_summary_results_reg2_sensitivity")
 )
 
-#perform comparisons
+# Perform comparisons
 for (pair in column_pairs) {
   compare_columns(data_transformed, pair[1], drks_ctgov_data, pair[2])
   compare_columns(data_transformed, pair[2], drks_ctgov_data, pair[1])
 }
 
-#### RE-JOINING FINAL DATASET FOR ANALYSIS ####
+#### RE-JOINING DATASET ####
 joined_data <- bind_rows(euctr_data, data_transformed)
+
 
 ### EXPORT FINAL DATASET
 write.csv(joined_data, here::here("data", "manual_validation_processed.csv"), row.names = FALSE)
