@@ -27,13 +27,13 @@ standardize_pairs <- function(df) {
 
 # Load data 
 manual_validation <- read.csv(here("data", "manual_validation_processed.csv"))
-trn_manual_checks <- read_rds(here("data", "crossreg_pipeline_output.rds"))
+unscreened_trn_pairs<- read_rds(here("data", "crossreg_pipeline_output.rds"))
 
 # Prepare/process tables for use
 # Here, we are filtering for trials with a priority of 4 or lower (priority 4 = trial identifier mentioned in another trial's related publication), as our pilot manual review of trial pairs with priority > 4 revealed low precision for correctly identified true cross-registrations
 # Then, we filter for TRNs that have not been removed from the DRKS registry. We also filter for EUCTR TRNs that still resolve in the EUCTR registry. These steps ensure that all remaining TRN pairs can be looked up in their respective registries and screened
 # Finally, we filter out one specific row, in which the TRN '2008-004408-29' is incorrectly marked as a trial that resolves in the EUCTR database.
-trn_filtered <- trn_manual_checks |>
+trn_filtered <- unscreened_trn_pairs|>
   filter(priority <= 4) |>
   filter(drks_removed == FALSE & euctr_id_in_euctr == TRUE) |>
   filter(trn2 != "2008-004408-29")
