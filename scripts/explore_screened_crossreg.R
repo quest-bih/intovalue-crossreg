@@ -1,4 +1,4 @@
-# A script to explore cross registrations that were further screened as true or false cross-registrations
+# A script to explore cross registrations that were screened as true/false cross-registrations
 # previously identified potential cross registration pairs were classified as either true cross registrations or false positive pairs
 
 library(tidyverse)
@@ -29,7 +29,7 @@ standardize_pairs <- function(df) {
 manual_validation <- read.csv(here("data", "manual_validation_processed.csv"))
 unscreened_trn_pairs<- read_rds(here("data", "crossreg_pipeline_output.rds"))
 
-# Standardize list of manually validated pairs
+# Standardize list of manually screened pairs
 manual_validated_standardized <- manual_validation |>
   standardize_pairs() |>
   select(standardized_pair, is_true_crossreg)
@@ -103,7 +103,7 @@ trn_filtered <- trn_filtered |>
 #pub_abs <- pub_crossregs |>
 #  filter(trn1_in_pub_abs | trn2_in_pub_abs)
 ################################################################################
-# Investigate how false positive cross-registrations are connected ( 8/9 false positives are Category 4, so this will be investigated here)
+# Investigate how false positive (screened, but not confirmed) cross-registrations are connected ( 8/9 false positives are Category 4, so this will be investigated here)
 
 # Filter for false cross-registrations
 false_crossreg_standardized <- manual_validated_standardized |>
@@ -197,7 +197,7 @@ upset_validated_crossreg <- validated_crossreg |>
 validated_crossreg_combinations_proportions <- upset_validated_crossreg |>
   ggplot(aes(x = links)) +
   geom_bar(aes(y = after_stat(count / nrow(upset_validated_crossreg) * 100))) +  # Set y as proportion for correct scaling
-  ggtitle("Validated and True Crossreg Combinations Proportions") +
+  ggtitle("Confirmed Crossreg Combinations Proportions") +
   geom_text(stat = 'count', aes(y = after_stat(count / nrow(upset_validated_crossreg) * 100), label = sprintf("%.1f%%", after_stat(count / nrow(upset_validated_crossreg) * 100))), vjust = -1) + # Display as percentages
   scale_x_upset(n_intersections = 20) +
   scale_y_continuous(limits = c(0, 30), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
@@ -211,9 +211,9 @@ validated_crossreg_combinations_proportions <- upset_validated_crossreg |>
 
 
 ################################################################################
-# Upset plot for trials linked by publication, with false positive count
+# Upset plot for screened trials linked by publication, with false positive count
 
-# Filter for true cross-registrations
+# Add information about true/false positivity on cross registration status to `trn_filtered`
 manual_validated<- manual_validated_standardized |>
   left_join(trn_filtered, by = "standardized_pair") |>
   mutate(is_true_crossreg = ifelse(standardized_pair == "2010-023688-16_NCT01326767", TRUE, is_true_crossreg)) # Manually change is_true_crossreg back to TRUE for row "2010-023688-16_NCT01326767", not sure why it changes at all
@@ -284,7 +284,7 @@ pub_linking_combinations_false_positive <- upset_manual_false_positive |>
   )
 
 ############################################################################
-# Upset plot for manually validated TRN pairs (with all categories, not just publication linkages)
+# Upset plot for screened TRN pairs (with all categories, not just publication linkages)
 # Will show false positivity rate per category
 
 
@@ -315,13 +315,12 @@ trn_combos_validated <-
   select(-value, -link) |>
   distinct()
 
-# Join false positivity information to create new upset
+# Join false positivity information with upset-friendly format of `trn_combos_validated` to make upset w/ false positivity information
 manual_validation_upset <- manual_validated_standardized |>
   left_join(trn_combos_validated, by = "standardized_pair") |>
   mutate(links = ifelse(standardized_pair == " 2010-023688-16_NCT01326767", "Bidirectional link", links)) # Manually change `links` back to `bidirectional` for row "2010-023688-16_NCT01326767", not sure why it changes at all
 
-# Upset plot showing manually validated TRN pairs, with false positivity displayed
-
+# Upset plot showing screened TRN pairs, with false positivity displayed
 manual_validation_plot <- manual_validation_upset |> 
   ggplot(aes(x = links, fill = is_true_crossreg)) + 
   geom_bar(position = "stack") + 
