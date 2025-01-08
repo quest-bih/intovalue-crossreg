@@ -63,8 +63,6 @@ trn_filtered <- trn_filtered |>
 #  standardize_pairs() |>
 #  select(standardized_pair, is_true_crossreg)
 
-trn_manual_checks_standardized <- standardize_pairs(trn_manual_checks)
-
 # Join true crossreg with larger table by standardized_pair
 #confirmed_crossreg <- confirmed_crossreg_standardized |>
 #  left_join(trn_manual_checks_standardized, by = "standardized_pair") |>
@@ -221,8 +219,8 @@ confirmed_crossreg_standardized <- manual_validation |>
   standardize_pairs() |>
   select(standardized_pair, is_true_crossreg)
 
-manual_validated <- manual_validated_standardized |>
-  left_join(trn_manual_checks_standardized, by = "standardized_pair") |>
+manual_validated<- manual_validated_standardized |>
+  left_join(trn_filtered, by = "standardized_pair") |>
   mutate(is_true_crossreg = ifelse(standardized_pair == "2010-023688-16_NCT01326767", TRUE, is_true_crossreg)) # Manually change is_true_crossreg back to TRUE for row "2010-023688-16_NCT01326767", not sure why it changes at all
 
 # Filter for trials linked by publication in any way
