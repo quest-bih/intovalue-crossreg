@@ -1,16 +1,7 @@
 # Script to plot the number of potential cross-registrations over time 
 
 library(tidyverse)
-library(VennDiagram)
-library(lubridate)
 library(here)
-library(fs)
-library(stringr)
-library(ctregistries)
-library(cli)
-library(ggupset)
-library(ggplot2)
-library(readr)
 
 trn_manual_checks <- read_rds(here("data", "crossreg_pipeline_output.rds"))
 
