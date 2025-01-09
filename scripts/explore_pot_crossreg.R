@@ -155,7 +155,7 @@ drks_euctr_reg_linked <- trn_filtered |>
 #  left_join(manual_validation, by = "standardized_pair") |>
 #  filter(is_true_crossreg)
 
-# Filter for crossregs between CT and EUCTR that were title matched
+# Filter for crossregs between DRKS and EUCTR that were title matched
 # (may be commented out, depending on whether you wish to include it in the Venn diagram)
 #drks_euctr_title_matched <- trn_filtered |>
 #  filter(non_euctr_registry == "DRKS") |>
