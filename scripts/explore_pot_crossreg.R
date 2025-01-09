@@ -47,7 +47,6 @@ trn_filtered <- trn_filtered |>
   mutate(
     bidirectional = if_else(trn1inreg2 & trn2inreg1, TRUE, FALSE),
     is_title_matched = if_else(is.na(is_title_matched), FALSE, is_title_matched),
-    non_euctr_registry = if_else(registry1 == "EudraCT", registry2, registry1) ,
     unidirectional = if_else((trn1inreg2 | trn2inreg1) & !bidirectional, TRUE, FALSE)
     # unidirectional = if_else((trn1inreg2 | trn2inreg1), TRUE, FALSE)
   ) 
@@ -63,8 +62,8 @@ trn_filtered <- trn_filtered |>
 trn_filtered <- trn_filtered |>
   mutate(
     euctr_trn = if_else(registry1 == "EudraCT", trn1, if_else(registry2 == "EudraCT", trn2, NA)),
-    non_euctr_trn = if_else(registry1 != "EudraCT", trn1, trn2),
-    non_euctr_registry = if_else(registry1 != "EudraCT", registry1, registry2)
+    non_euctr_trn = if_else(registry1 == "EudraCT", trn2, trn1),
+    non_euctr_registry = if_else(registry1 == "EudraCT", registry2, registry1)
   )
 
 # Find EUCTR trials linked to multiple non-EUCTR TRNs
