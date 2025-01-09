@@ -1,22 +1,14 @@
 # Script exploring all potential crossregs, producing upset plots, Venn diagrams, tables, etc.
 library(tidyverse)
 library(here)
-library(lubridate)
-library(here)
-library(fs)
-library(lubridate)
-library(stringr)
 library(ctregistries)
-library(cli)
 library(ggupset)
-library(ggplot2)
-library(VennDiagram)
 library(ggvenn)
 library(gtsummary)
 
 
 # Read in data ------------------------------------------------------------
-trn_manual_checks = read_rds("data/crossreg_pipeline_output.rds")
+trn_manual_checks <- read_rds(here("data","crossreg_pipeline_output.rds"))
 
 trn_filtered <- trn_manual_checks |>
   filter(priority <= 4) |>
@@ -26,8 +18,8 @@ trn_filtered <- trn_manual_checks |>
 # Add registries back in
 trn_filtered <- trn_filtered |>
   rowwise()|>
-  mutate(registry1 = which_registry(trn1),
-         registry2 = which_registry(trn2))
+  mutate(registry1 = ctregistries::which_registry(trn1),
+         registry2 = ctregistries::which_registry(trn2))
 
 # Function to standardize trial pairs, give them unique identifier
 standardize_pairs <- function(df) {
