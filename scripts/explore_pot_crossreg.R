@@ -59,11 +59,12 @@ trn_filtered <- trn_filtered |>
 # Count and analyze how many cross-registrations are in all 3 registrations (informal) analysis
 
 # Assign euctr_trn and non_euctr_trn based on the registry
+
 trn_filtered <- trn_filtered |>
   mutate(
-    euctr_trn = ifelse(registry1 == "EudraCT", trn1, ifelse(registry2 == "EudraCT", trn2, NA)),
-    non_euctr_trn = ifelse(registry1 != "EudraCT", trn1, trn2),
-    non_euctr_registry = ifelse(registry1 != "EudraCT", registry1, registry2)
+    euctr_trn = if_else(registry1 == "EudraCT", trn1, if_else(registry2 == "EudraCT", trn2, NA)),
+    non_euctr_trn = if_else(registry1 != "EudraCT", trn1, trn2),
+    non_euctr_registry = if_else(registry1 != "EudraCT", registry1, registry2)
   )
 
 # Find EUCTR trials linked to multiple non-EUCTR TRNs
