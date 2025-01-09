@@ -51,14 +51,7 @@ trn_filtered <- trn_filtered |>
     # unidirectional = if_else((trn1inreg2 | trn2inreg1), TRUE, FALSE)
   ) 
 
-
-#################################################################################################
-
-# Exploration of trials registered in 3 registries ------------------------
-# Count and analyze how many cross-registrations are in all 3 registrations (informal) analysis
-
 # Assign euctr_trn and non_euctr_trn based on the registry
-
 trn_filtered <- trn_filtered |>
   mutate(
     euctr_trn = if_else(registry1 == "EudraCT", trn1, trn2 ),
@@ -66,24 +59,6 @@ trn_filtered <- trn_filtered |>
     non_euctr_registry = if_else(registry1 == "EudraCT", registry2, registry1)
   )
 
-# Find EUCTR trials linked to multiple non-EUCTR TRNs
-duplicates <- trn_filtered |>
-  group_by(euctr_trn) |>
-  filter(n_distinct(non_euctr_trn) > 1) |>  # Keep only EUCTR IDs linked to more than one non-EUCTR ID
-  ungroup()
-
-# Returns 5 pairs
-# DRKS00000582 - NCT00989352 (linked by 2008-007645-31) - does appear like a valid crossreg
-# NCT02035709 - NCT01490268 (found by us in Priority 7, linked by 2011-003648-31, also NCT02035709 is also linked to 2013-002875-16 in Priority 2) - UNSURE if valid crossreg
-# NCT01703832 - NCT01703819 ( NCT01703832 also connected to 2012-002359-40 in Priority 1, these two connected by 2012-002358-22 ) - These look like identical trials
-# NCT02309918 - DRKS00006863 (not seen previously, connected by 2013-001081-42) - Looks VALID
-# DRKS00003170 - NCT01387048 (not seen previously, connected by 2011-000152-42) - looks VALID
-
-# also potential linkages within EUCTR?
-# 2011-003648-31 - 2013-002875-16 (2013 link no longer resolves)
-# 2012-002359-40 - 2012-002358-22 (first one is open label, second is double-blind, otherwise the same)
-
-# More in depth description in Paper Outline document
 
 ############################################################################
 # Code for Table 1
@@ -515,4 +490,29 @@ ggsave(
   height = 5
   # scale = 2
 )
+
+#################################################################################################
+
+# Exploration of trials registered in 3 registries ------------------------
+# Count and analyze how many cross-registrations are in all 3 registrations (informal) analysis
+
+# Find EUCTR trials linked to multiple non-EUCTR TRNs
+duplicates <- trn_filtered |>
+  group_by(euctr_trn) |>
+  filter(n_distinct(non_euctr_trn) > 1) |>  # Keep only EUCTR IDs linked to more than one non-EUCTR ID
+  ungroup()
+
+# Returns 5 pairs
+# DRKS00000582 - NCT00989352 (linked by 2008-007645-31) - does appear like a valid crossreg
+# NCT02035709 - NCT01490268 (found by us in Priority 7, linked by 2011-003648-31, also NCT02035709 is also linked to 2013-002875-16 in Priority 2) - UNSURE if valid crossreg
+# NCT01703832 - NCT01703819 ( NCT01703832 also connected to 2012-002359-40 in Priority 1, these two connected by 2012-002358-22 ) - These look like identical trials
+# NCT02309918 - DRKS00006863 (not seen previously, connected by 2013-001081-42) - Looks VALID
+# DRKS00003170 - NCT01387048 (not seen previously, connected by 2011-000152-42) - looks VALID
+
+# also potential linkages within EUCTR?
+# 2011-003648-31 - 2013-002875-16 (2013 link no longer resolves)
+# 2012-002359-40 - 2012-002358-22 (first one is open label, second is double-blind, otherwise the same)
+
+# More in depth description in Paper Outline document
+
 
