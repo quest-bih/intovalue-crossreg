@@ -64,68 +64,8 @@ trn_filtered <- trn_filtered |>
 # Code for Table 1
 # Table 1. Characteristics indicating potential cross-registrations, 
 # overall and by registry (prior to manual validation). 
-# Most of the code below is replaceable with the code creating table_1_summary, so it has been commented out
 
-# Overall
-#trn_overall_bidirectional <- trn_filtered |>
-#  filter(bidirectional) |>
-#  nrow()
-
-#trn_overall_unidirectional <- trn_filtered |>
-#  filter(unidirectional) |>
-#  nrow()
-
-#trn_overall_title_match <- trn_filtered |>
-#  filter(is_title_matched) |>
-#  nrow()
-
-#trn_overall_pub <- trn_filtered |>
-#  filter(at_least_one_pub) |>
-#  nrow()
-
-# ClinicalTrials.gov
-#trn_ct_bidirectional <- trn_filtered |>
-#  filter(non_euctr_registry == "ClinicalTrials.gov") |>
-#  filter(bidirectional) |>
-#  nrow()
-
-#trn_ct_unidirectional <- trn_filtered |>
-#  filter(non_euctr_registry == "ClinicalTrials.gov") |>
-#  filter(unidirectional) |>
-#  nrow()
-
-#trn_ct_title_matched <- trn_filtered |>
-#  filter(non_euctr_registry == "ClinicalTrials.gov") |>
-#  filter(is_title_matched) |>
-#  nrow()
-
-#trn_ct_pub <- trn_filtered |>
-#  filter(non_euctr_registry == "ClinicalTrials.gov") |>
-#  filter(at_least_one_pub) |>
-#  nrow()
-
-# DRKS
-#trn_drks_bidirectional <- trn_filtered |>
-#  filter(non_euctr_registry == "DRKS") |>
-#  filter(bidirectional) |>
-#  nrow()
-
-#trn_drks_unidirectional <- trn_filtered |>
-#  filter(non_euctr_registry == "DRKS") |>
-#  filter(unidirectional) |>
-#  nrow()
-
-#trn_drks_title_matched <- trn_filtered |>
-#  filter(non_euctr_registry == "DRKS") |>
-#  filter(is_title_matched) |>
-#  nrow()
-
-#trn_drks_pub <- trn_filtered |>
-#  filter(non_euctr_registry == "DRKS") |>
-#  filter(at_least_one_pub) |>
-#  nrow()
-
-# Code for Table 1, cleaner than the above
+# Code for Table 1
 table_1_summary <- trn_filtered |>
   select(
     non_euctr_registry,
