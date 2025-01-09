@@ -257,9 +257,9 @@ overall_crossreg_combinations <- trn_combos |>
 # Upset plot showing all TRN pairs as proportions
 overall_crossreg_combinations_proportions <- trn_combos |>
   ggplot(aes(x = links)) +
-  geom_bar(aes(y = after_stat(count / 625 * 100))) +  # Set y as proportion for correct scaling
+  geom_bar(aes(y = after_stat(count / nrow(trn_combos) * 100))) +  # Set y as proportion for correct scaling
   ggtitle("Overall Combinations Proportions") +
-  geom_text(stat = 'count', aes(y = after_stat(count / 625 * 100), label = sprintf("%.1f%%", after_stat(count / 625 * 100))), vjust = -1) + # Display as percentages
+  geom_text(stat = 'count', aes(y = after_stat(count / nrow(trn_combos) * 100), label = sprintf("%.1f%%", after_stat(count / nrow(trn_combos) * 100))), vjust = -1) + # Display as percentages
   scale_x_upset(n_intersections = 20) +
   scale_y_continuous(limits = c(0, 30), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
   ylab("Proportion of pairs (%)") +  
@@ -311,9 +311,9 @@ drks_crossreg_combinations <- trn_combos_drks |>
 #  Upset plot of TRN pairs between DRKS and EUCTR (Proportions instead of counts)
 drks_crossreg_combinations_proportions <- trn_combos_drks |>
   ggplot(aes(x = links)) +
-  geom_bar(aes(y = after_stat(count / 62 * 100))) +  # Set y as proportion for correct scaling
+  geom_bar(aes(y = after_stat(count / nrow(trn_combos_drks) * 100))) +  # Set y as proportion for correct scaling
   ggtitle("DRKS Combinations Proportions") +
-  geom_text(stat = 'count', aes(y = after_stat(count / 62 * 100), label = sprintf("%.1f%%", after_stat(count / 62 * 100))), vjust = -1) + # Display as percentages
+  geom_text(stat = 'count', aes(y = after_stat(count / nrow(trn_combos_drks) * 100), label = sprintf("%.1f%%", after_stat(count / nrow(trn_combos_drks) * 100))), vjust = -1) + # Display as percentages
   scale_x_upset(n_intersections = 20) +
   scale_y_continuous(limits = c(0, 50), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
   ylab("Proportion of pairs (%)") +  
@@ -342,9 +342,9 @@ ctgov_crossreg_combinations <- trn_combos_ctgov |>
 # Upset plot of TRN pairs between CT and EUCTR (Proportions instead of counts)
 ctgov_crossreg_combinations_proportions <- trn_combos_ctgov |>
   ggplot(aes(x = links)) +
-  geom_bar(aes(y = after_stat(count / 563 * 100))) +  # Set y as proportion for correct scaling
+  geom_bar(aes(y = after_stat(count / nrow(trn_combos_ctgov) * 100))) +  # Set y as proportion for correct scaling
   ggtitle("ClinicalTrials.gov Combinations Proportions") +
-  geom_text(stat = 'count', aes(y = after_stat(count / 563 * 100), label = sprintf("%.1f%%", after_stat(count / 563 * 100))), vjust = -1) + # Display as percentages
+  geom_text(stat = 'count', aes(y = after_stat(count / nrow(trn_combos_ctgov) * 100), label = sprintf("%.1f%%", after_stat(count / nrow(trn_combos_ctgov) * 100))), vjust = -1) + # Display as percentages
   scale_x_upset(n_intersections = 20) +
   scale_y_continuous(limits = c(0, 40), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
   ylab("Proportion of pairs (%)") +  
