@@ -58,7 +58,7 @@ ggplot(summary_by_year, aes(x = completion_year, y = count, fill = crossreg_stat
   geom_text(
     aes(
       label = ifelse(crossreg_status == "TRUE", 
-                     paste0(crossreg_percentage, "%"), "")
+                     paste0(round(crossreg_percentage), "%"), "")
     ), 
     position = position_stack(vjust = 0.5), 
     color = "black", size = 4
