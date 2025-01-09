@@ -61,7 +61,7 @@ trn_filtered <- trn_filtered |>
 
 trn_filtered <- trn_filtered |>
   mutate(
-    euctr_trn = if_else(registry1 == "EudraCT", trn1, if_else(registry2 == "EudraCT", trn2, NA)),
+    euctr_trn = if_else(registry1 == "EudraCT", trn1, trn2 ),
     non_euctr_trn = if_else(registry1 == "EudraCT", trn2, trn1),
     non_euctr_registry = if_else(registry1 == "EudraCT", registry2, registry1)
   )
