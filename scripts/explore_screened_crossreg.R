@@ -166,12 +166,12 @@ manual_screening_plot <- manual_screening_upset |>
 # Upset plot for screened trials linked by publication, with false positive count
 
 # Add information about true/false positivity on cross registration status to `trn_filtered`
-manual_screened<- manual_screening_standardized |>
+trn_filtered_with_screening_info<- manual_screening_standardized |>
   left_join(trn_filtered, by = "standardized_pair") |>
   mutate(is_true_crossreg = ifelse(standardized_pair == "2010-023688-16_NCT01326767", TRUE, is_true_crossreg)) # Manually change is_true_crossreg back to TRUE for row "2010-023688-16_NCT01326767", not sure why it changes at all
 
 # Filter for trials linked by publication in any way
-pub_crossregs_manual_screened <- manual_screened |>
+pub_crossregs_manual_screened <- trn_filtered_with_screening_info |>
   filter(at_least_one_pub) |>
   mutate(
     trn1_in_pub_abs = replace_na(trn1_in_pub_abs, FALSE),
