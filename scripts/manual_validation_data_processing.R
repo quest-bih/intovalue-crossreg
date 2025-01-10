@@ -41,7 +41,7 @@ data <- data |>
 #### IMPLEMENT CORRECTIONS ####
 
 # Correct date for NCT01510704 from NA to 2012-04-30
-data[data$trn2 == "NCT01510704",]$completion_date_reg2 <- as.Date("2012-04-30", format = "%Y-%m-%d")
+data[data$trn2 == "NCT01510704",]$completion_date_reg2 <- ymd("2012-04-30")
 
 # For NCT00351403 - 2006-000358-38, `completion_date_type_reg1` should be changed from “Global” to “Actual”
 data[data$trn1 == "NCT00351403",]$completion_date_type_reg1 <- "Actual"
