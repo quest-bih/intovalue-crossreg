@@ -55,17 +55,17 @@ iv_distinct <- ecrin |>
 
 # Apply the function to both datasets (do NOT filter for trials that resolve in TRN)
 ecrin_standardized <- standardize_pairs(ecrin)
-trn_standardized <- standardize_pairs(trn_filtered)
+crossreg_pipeline_pairs_standardized <- standardize_pairs(trn_filtered)
 
 # Convert to vectors for easy comparison
 ecrin_pairs_vector <- ecrin_standardized$standardized_pair
-trn_pairs_vector <- trn_standardized$standardized_pair
+crossreg_pipeline_pairs_vector <- crossreg_pipeline_pairs_standardized$standardized_pair
 
 #######################################################################################
 # New, cleaner approach to Venn diagrams to visualize overlap between our approach and the ECRIN approach
 
 ecrin_venn_data <- list(
-  "Approach of the present study" = trn_pairs_vector,
+  "Approach of the present study" = crossreg_pipeline_pairs_vector,
   "ECRIN Approach" = ecrin_pairs_vector
   )
 
@@ -86,22 +86,22 @@ base_ecrin_venn +
 #######################################################################################
 # Here we identify the trial pairs unique to ECRIN's approach and our approach, and where our approaches overlapped
 
- common_pairs <- intersect(ecrin_pairs_vector, trn_pairs_vector)
- unique_to_ecrin <- setdiff(ecrin_pairs_vector, trn_pairs_vector)
- unique_to_trn <- setdiff(trn_pairs_vector, ecrin_pairs_vector)
+ common_pairs <- intersect(ecrin_pairs_vector, crossreg_pipeline_pairs_vector)
+ unique_to_ecrin <- setdiff(ecrin_pairs_vector, crossreg_pipeline_pairs_vector)
+ unique_to_trn <- setdiff(crossreg_pipeline_pairs_vector, ecrin_pairs_vector)
 
 
 # Summary counts
 total_ecrin <- length(ecrin_pairs_vector)
-total_trn <- length(trn_pairs_vector)
+total_trn <- length(crossreg_pipeline_pairs_vector)
 common_count <- length(common_pairs)
 unique_to_ecrin_count <- length(unique_to_ecrin)
 unique_to_trn_count <- length(unique_to_trn)
 
 
 # tables of trial pairs unique to ecrin or TRN
-unique_to_ecrin_df <- ecrin_pairs[!ecrin_pairs$standardized_pair %in% trn_pairs$standardized_pair, ]
-unique_to_trn_df <- trn_pairs[!trn_pairs$standardized_pair %in% ecrin_pairs$standardized_pair, ]
+unique_to_ecrin_df <- ecrin_pairs[!ecrin_pairs$standardized_pair %in% crossreg_pipeline_pairs$standardized_pair, ]
+unique_to_trn_df <- crossreg_pipeline_pairs[!crossreg_pipeline_pairs$standardized_pair %in% ecrin_pairs$standardized_pair, ]
 
 # add unique flag
 unique_to_trn_df <- unique_to_trn_df |>
@@ -131,8 +131,8 @@ difference <- setdiff(unique_to_ecrin_df$standardized_pair, priority_5_isolated$
 # Check how many of the pairs found exclusively by us were checked by us, and how many of those were actually positive
 manual_validation <- read.csv(here("data", "manual_validation_processed.csv"))
 
-unique_to_trn <- setdiff(trn_pairs_vector, ecrin_pairs_vector)
-unique_to_trn_df <- trn_pairs[!trn_pairs$standardized_pair %in% ecrin_pairs$standardized_pair, ]
+unique_to_trn <- setdiff(crossreg_pipeline_pairs_vector, ecrin_pairs_vector)
+unique_to_trn_df <- crossreg_pipeline_pairs[!crossreg_pipeline_pairs$standardized_pair %in% ecrin_pairs$standardized_pair, ]
 
 # Add in unique standardized_pair so we can compare with unique_to_trn_df
 manual_validation_standard = standardize_pairs(manual_validation)
@@ -149,29 +149,4 @@ trn_unique_with_manual_summary <- trn_unique_with_manual |>
     proportion = n()/ nrow(trn_unique_with_manual)
   )
 
-
-
-
-# Filter by first two priorities
-# trn_unique_priority_1_2 <- trn_unique_flagged |>
-#  filter(priority <= 2)
-
-
-# Find the rows in `trn_pairs` that are unique to trn (not present in ecrin)
-# resolves_unique_to_trn_df <- trn_resolves_pairs[!trn_resolves_pairs$standardized_pair %in% ecrin_pairs$standardized_pair, ]
-
-
-# Adding back registry columns to filtered table
-# trn_filtered <- trn_filtered |>
-#  rowwise()|>
-#  mutate(registry1 = which_registry(trn1),
-#         registry2 = which_registry(trn2))
-
-# trn_resolves <- trn_resolves |>
-#  rowwise()|>
-#  mutate(registry1 = which_registry(trn1),
-#         registry2 = which_registry(trn2))
-
-# trn_resolves <- trn_resolves |>
-#  filter(trn2 != "2008-004408-29")
 
