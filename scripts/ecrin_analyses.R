@@ -98,55 +98,5 @@ common_count <- length(common_pairs)
 unique_to_ecrin_count <- length(unique_to_ecrin)
 unique_to_trn_count <- length(unique_to_trn)
 
-
-# tables of trial pairs unique to ecrin or TRN
-unique_to_ecrin_df <- ecrin_pairs[!ecrin_pairs$standardized_pair %in% crossreg_pipeline_pairs$standardized_pair, ]
-unique_to_trn_df <- crossreg_pipeline_pairs[!crossreg_pipeline_pairs$standardized_pair %in% ecrin_pairs$standardized_pair, ]
-
-# add unique flag
-unique_to_trn_df <- unique_to_trn_df |>
-  mutate(unique_to_trn = 1)
-
-unique_to_ecrin_df <- unique_to_ecrin_df |>
-  mutate(unique_to_ecrin = 1)
-
-# identify unique to trn pairs in broader table
-trn_unique_flagged <- trn_standardized |>
-  left_join(unique_to_trn_df, by = "standardized_pair") |>
-  filter(unique_to_trn == 1)
-
-# identify unique to ECRIN pairs in broader table
-trn_manual_standardized <- trn_manual_standardized |>
-  left_join(unique_to_ecrin_df, by = "standardized_pair") |>
-  filter(unique_to_ecrin == 1)
-
-# Isolate TRN pairs we found in category 5 to see which ones we missed entirely 
-priority_5_isolated <- trn_manual_standardized |>
-  select(standardized_pair)
-
-# determine which pairs in unique to ecrin we missed entirely (not in priority 5)
-difference <- setdiff(unique_to_ecrin_df$standardized_pair, priority_5_isolated$standardized_pair)
-
 ###################################################################################################
-# Check how many of the pairs found exclusively by us were checked by us, and how many of those were actually positive
-manual_validation <- read.csv(here("data", "manual_validation_processed.csv"))
-
-unique_to_trn <- setdiff(crossreg_pipeline_pairs_vector, ecrin_pairs_vector)
-unique_to_trn_df <- crossreg_pipeline_pairs[!crossreg_pipeline_pairs$standardized_pair %in% ecrin_pairs$standardized_pair, ]
-
-# Add in unique standardized_pair so we can compare with unique_to_trn_df
-manual_validation_standard = standardize_pairs(manual_validation)
-
-# Left join manually validated pairs to unique_to_trn_df
-trn_unique_with_manual <- unique_to_trn_df |>
-  left_join(manual_validation_standard, by = "standardized_pair") |>
-  filter(!is.na(is_true_crossreg))
-
-trn_unique_with_manual_summary <- trn_unique_with_manual |>
-  group_by(is_true_crossreg) |>
-  summarise(
-    total = n(),
-    proportion = n()/ nrow(trn_unique_with_manual)
-  )
-
 
