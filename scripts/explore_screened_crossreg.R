@@ -111,7 +111,7 @@ trn_filtered <- trn_filtered |>
 
 # Make trn_filtered readable for ggupset package, 
 # Retain standardized_pair so we can match it to manual_validation_upset
-trn_combos_validated <-
+trn_combos_potential_crossreg <-
   trn_filtered |>
   select(trn1,
          trn2,
@@ -136,9 +136,9 @@ trn_combos_validated <-
   select(-value, -link) |>
   distinct()
 
-# Join information on precision from the manual check with upset-friendly format of `trn_combos_validated` to make upset w/ false positivity information
+# Join information on precision from the manual check with upset-friendly format of `trn_combos_potential_crossreg` to make upset w/ false positivity information
 manual_screening_upset <- manual_screening_standardized |>
-  left_join(trn_combos_validated, by = "standardized_pair") |>
+  left_join(trn_combos_potential_crossreg, by = "standardized_pair") |>
   mutate(links = ifelse(standardized_pair == " 2010-023688-16_NCT01326767", "Bidirectional link", links)) # Manually change `links` back to `bidirectional` for row "2010-023688-16_NCT01326767", not sure why it changes at all
 
 # Upset plot showing screened TRN pairs, with false positivity displayed
