@@ -20,11 +20,11 @@ standardize_pairs <- function(df) {
 ################################################################################################
 
 # Load data 
-manual_validation <- read.csv(here("data", "manual_validation_processed.csv"))
-unscreened_trn_pairs<- read_rds(here("data", "crossreg_pipeline_output.rds"))
+manual_screening <- read.csv(here("data", "manual_validation_processed.csv"))
+potential_crossreg<- read_rds(here("data", "crossreg_pipeline_output.rds"))
 
 # Standardize list of manually screened pairs
-manual_validated_standardized <- manual_validation |>
+manual_screening_standardized <- manual_screening |>
   standardize_pairs() |>
   select(standardized_pair, is_true_crossreg)
 
@@ -32,7 +32,7 @@ manual_validated_standardized <- manual_validation |>
 # Here, we are filtering for trials with a priority of 4 or lower (priority 4 = trial identifier mentioned in another trial's related publication), as our pilot manual review of trial pairs with priority > 4 revealed low precision for correctly identified true cross-registrations
 # Then, we filter for TRNs that have not been removed from the DRKS registry. We also filter for EUCTR TRNs that still resolve in the EUCTR registry. These steps ensure that all remaining TRN pairs can be looked up in their respective registries and screened
 # Finally, we filter out one specific row, in which the TRN '2008-004408-29' is incorrectly marked as a trial that resolves in the EUCTR database.
-trn_filtered <- unscreened_trn_pairs|>
+trn_filtered <- potential_crossreg|>
   filter(priority <= 4) |>
   filter(drks_removed == FALSE & euctr_id_in_euctr == TRUE) |>
   filter(trn2 != "2008-004408-29")
@@ -136,13 +136,13 @@ trn_combos_validated <-
   select(-value, -link) |>
   distinct()
 
-# Join false positivity information with upset-friendly format of `trn_combos_validated` to make upset w/ false positivity information
-manual_validation_upset <- manual_validated_standardized |>
+# Join information on precision from the manual check with upset-friendly format of `trn_combos_validated` to make upset w/ false positivity information
+manual_screening_upset <- manual_screening_standardized |>
   left_join(trn_combos_validated, by = "standardized_pair") |>
   mutate(links = ifelse(standardized_pair == " 2010-023688-16_NCT01326767", "Bidirectional link", links)) # Manually change `links` back to `bidirectional` for row "2010-023688-16_NCT01326767", not sure why it changes at all
 
 # Upset plot showing screened TRN pairs, with false positivity displayed
-manual_validation_plot <- manual_validation_upset |> 
+manual_screening_plot <- manual_screening_upset |> 
   ggplot(aes(x = links, fill = is_true_crossreg)) + 
   geom_bar(position = "stack") + 
   geom_text(
@@ -166,12 +166,12 @@ manual_validation_plot <- manual_validation_upset |>
 # Upset plot for screened trials linked by publication, with false positive count
 
 # Add information about true/false positivity on cross registration status to `trn_filtered`
-manual_validated<- manual_validated_standardized |>
+manual_screened<- manual_screening_standardized |>
   left_join(trn_filtered, by = "standardized_pair") |>
   mutate(is_true_crossreg = ifelse(standardized_pair == "2010-023688-16_NCT01326767", TRUE, is_true_crossreg)) # Manually change is_true_crossreg back to TRUE for row "2010-023688-16_NCT01326767", not sure why it changes at all
 
 # Filter for trials linked by publication in any way
-pub_crossregs_manual_validated <- manual_validated |>
+pub_crossregs_manual_screened <- manual_screened |>
   filter(at_least_one_pub) |>
   mutate(
     trn1_in_pub_abs = replace_na(trn1_in_pub_abs, FALSE),
@@ -189,8 +189,8 @@ pub_crossregs_manual_validated <- manual_validated |>
 
 
 #Change format to make friendlier for ggupset
-upset_manual_validation <-
-  pub_crossregs_manual_validated |>
+upset_manual_screening <-
+  pub_crossregs_manual_screened |>
   select(trn1,
          trn2,
          trn_in_pub_si,
@@ -211,8 +211,8 @@ upset_manual_validation <-
   select(-value, -link) |>
   distinct()
 
-upset_manual_false_positive <- upset_manual_validation |>
-  left_join(manual_validated_standardized, by = "standardized_pair")
+upset_manual_false_positive <- upset_manual_screening |>
+  left_join(manual_screening_standardized, by = "standardized_pair")
 
 # Plot false positives in pub linkages
 
@@ -240,7 +240,7 @@ pub_linking_combinations_false_positive <- upset_manual_false_positive |>
 # Investigate how false positive (screened, but not confirmed) cross-registrations are connected ( 8/9 false positives are Category 4, so this will be investigated here)
 
 # Filter for false cross-registrations
-false_crossreg_standardized <- manual_validated_standardized |>
+false_crossreg_standardized <- manual_screening_standardized |>
   filter(!is_true_crossreg) |>
   select(standardized_pair, is_true_crossreg)
 
