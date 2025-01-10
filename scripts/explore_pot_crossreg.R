@@ -99,11 +99,9 @@ table_1_summary <- trn_filtered |>
 
 # Filter for potential cross-registrations between ClinicalTrials.gov and EUCTR linked by a unidirectional or bidirectional link in the registry
 ct_euctr_reg_linked <- trn_filtered |>
-  #standardize_pairs() |>
   filter(non_euctr_registry == "ClinicalTrials.gov") |>
   filter(unidirectional | bidirectional)
-#  left_join(manual_validation, by = "standardized_pair") |>
-  #filter(is_true_crossreg)
+
 
 # Filter for crossregs between CT and EUCTR that were title matched 
 # (may be commented out, depending on whether you wish to include it in the Venn diagram)
@@ -152,11 +150,8 @@ base_ct_euctr_venn +
 
 # Filter for potential cross-registrations between DRKS and EUCTR linked by a unidirectional or bidirectional link in the registry
 drks_euctr_reg_linked <- trn_filtered |>
-#  standardize_pairs() |>
   filter(non_euctr_registry == "DRKS") |>
   filter(unidirectional | bidirectional)
-#  left_join(manual_validation, by = "standardized_pair") |>
-#  filter(is_true_crossreg)
 
 # Filter for crossregs between DRKS and EUCTR that were title matched
 # (may be commented out, depending on whether you wish to include it in the Venn diagram)
