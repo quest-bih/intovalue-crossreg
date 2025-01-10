@@ -19,7 +19,8 @@ standardize_pairs <- function(df) {
 }
 ################################################################################################
 
-# Load data 
+# Load data
+# `manual_validation_processed.csv` contains all screened cross-registrations, and has a variable `is_true_crossreg` that labels those that were confirmed as true cross-registrations
 manual_screening <- read.csv(here("data", "manual_validation_processed.csv"))
 potential_crossreg<- read_rds(here("data", "crossreg_pipeline_output.rds"))
 
@@ -105,8 +106,8 @@ trn_filtered <- trn_filtered |>
 #  filter(trn1_in_pub_abs | trn2_in_pub_abs)
 
 ############################################################################
-# Upset plot for screened TRN pairs (with all categories, not just publication linkages)
-# Will show false positivity rate per category
+# Upset plot for screened TRN pairs
+# Will show true positives/false positives in each category
 
 
 # Make trn_filtered readable for ggupset package, 
