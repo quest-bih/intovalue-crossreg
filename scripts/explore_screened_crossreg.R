@@ -60,8 +60,20 @@ trn_filtered <- trn_filtered |>
     bidirectional = if_else(trn1inreg2 & trn2inreg1, TRUE, FALSE),
     is_title_matched = if_else(is.na(is_title_matched), FALSE, is_title_matched),
     non_euctr_registry = if_else(registry1 == "EudraCT", registry2, registry1) ,
-    unidirectional = if_else((trn1inreg2 | trn2inreg1) & !bidirectional, TRUE, FALSE)
+    unidirectional = if_else((trn1inreg2 | trn2inreg1) & !bidirectional, TRUE, FALSE),
     # unidirectional = if_else((trn1inreg2 | trn2inreg1), TRUE, FALSE)
+    
+    trn1_in_pub_abs = replace_na(trn1_in_pub_abs, FALSE),
+    trn2_in_pub_abs = replace_na(trn2_in_pub_abs, FALSE),
+    trn_in_pub_abs = trn1_in_pub_abs | trn2_in_pub_abs,
+    
+    trn1_in_pub_si = replace_na(trn1_in_pub_si, FALSE),
+    trn2_in_pub_si = replace_na(trn2_in_pub_si, FALSE),
+    trn_in_pub_si = trn1_in_pub_si | trn2_in_pub_si,
+    
+    trn1_in_pub_ft = replace_na(trn1_in_pub_ft, FALSE),
+    trn2_in_pub_ft = replace_na(trn2_in_pub_ft, FALSE),
+    trn_in_pub_ft = trn1_in_pub_ft | trn2_in_pub_ft
   ) 
 
 ############################################################################
@@ -127,27 +139,9 @@ manual_screening_plot <- manual_screening_upset |>
 # Upset plot for screened trials linked by publication, with false positive count
 
 # Add information about true/false positivity on cross registration status to `trn_filtered`
-trn_filtered_with_screening_info<- manual_screening_standardized |>
+pub_crossregs_manual_screened<- manual_screening_standardized |>
   left_join(trn_filtered, by = "standardized_pair") |>
   mutate(is_true_crossreg = ifelse(standardized_pair == "2010-023688-16_NCT01326767", TRUE, is_true_crossreg)) # Manually change is_true_crossreg back to TRUE for row "2010-023688-16_NCT01326767", not sure why it changes at all
-
-# Filter for trials linked by publication in any way
-pub_crossregs_manual_screened <- trn_filtered_with_screening_info |>
-  filter(at_least_one_pub) |>
-  mutate(
-    trn1_in_pub_abs = replace_na(trn1_in_pub_abs, FALSE),
-    trn2_in_pub_abs = replace_na(trn2_in_pub_abs, FALSE),
-    trn_in_pub_abs = trn1_in_pub_abs | trn2_in_pub_abs,
-    
-    trn1_in_pub_si = replace_na(trn1_in_pub_si, FALSE),
-    trn2_in_pub_si = replace_na(trn2_in_pub_si, FALSE),
-    trn_in_pub_si = trn1_in_pub_si | trn2_in_pub_si,
-    
-    trn1_in_pub_ft = replace_na(trn1_in_pub_ft, FALSE),
-    trn2_in_pub_ft = replace_na(trn2_in_pub_ft, FALSE),
-    trn_in_pub_ft = trn1_in_pub_ft | trn2_in_pub_ft
-  )
-
 
 #Change format to make friendlier for ggupset
 upset_manual_screening <-
