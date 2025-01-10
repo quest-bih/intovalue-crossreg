@@ -29,12 +29,11 @@ trn_manual_checks <- read_rds(here("data","crossreg_pipeline_output.rds"))
 trn_filtered <- trn_manual_checks |>
   filter(priority <= 4 )
 
+# Including this table allows us to identify further overlap between ECRIN results, and trial pairs 
+# identified by our approach, but excluded from trn_filtered for their Priorities
 trn_manual_standardized <- standardize_pairs(trn_manual_checks)
 
-# Filter TRN for EUCTR and DRKS that resolves
-trn_resolves <- trn_filtered |>
-  filter(drks_removed == FALSE & euctr_id_in_euctr == TRUE) |>
-  filter(trn2 != "2008-004408-29")
+
 
 # read in ECRIN information
 ecrin <- read_csv(here("data", "20241025_mdr_identifiers.csv")) |>
@@ -54,29 +53,16 @@ iv_distinct <- ecrin |>
   distinct()
   
 
-ecrin_errors <- read_csv("data/20241025_mdr_identifiers_errors.csv")
-
-
-
 # Apply the function to both datasets (do NOT filter for trials that resolve in TRN)
 ecrin_standardized <- standardize_pairs(ecrin)
 trn_standardized <- standardize_pairs(trn_filtered)
 
-# trn_resolves_standardized <- standardize_pairs(trn_resolves)
-
-# Select only the relevant column containing the standardized pairs
-ecrin_pairs <- ecrin_standardized |> select(standardized_pair)
-trn_pairs <- trn_standardized |> select(standardized_pair)
-
-# trn_resolves_pairs <- trn_resolves_standardized |> select(standardized_pair)
-
 # Convert to vectors for easy comparison
-ecrin_pairs_vector <- ecrin_pairs$standardized_pair
-trn_pairs_vector <- trn_pairs$standardized_pair
+ecrin_pairs_vector <- ecrin_standardized$standardized_pair
+trn_pairs_vector <- trn_standardized$standardized_pair
 
 #######################################################################################
-# New, cleaner approach to Venn diagrams that incorporates Daniel's suggestions
-# Replaces most of the code Venn diagram code past this section
+# New, cleaner approach to Venn diagrams to visualize overlap between our approach and the ECRIN approach
 
 ecrin_venn_data <- list(
   "Approach of the present study" = trn_pairs_vector,
