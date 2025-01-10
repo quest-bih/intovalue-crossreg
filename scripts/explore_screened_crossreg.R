@@ -144,21 +144,22 @@ pub_crossregs_manual_screened<- manual_screening_standardized |>
   mutate(is_true_crossreg = ifelse(standardized_pair == "2010-023688-16_NCT01326767", TRUE, is_true_crossreg)) # Manually change is_true_crossreg back to TRUE for row "2010-023688-16_NCT01326767", not sure why it changes at all
 
 #Change format to make friendlier for ggupset
-upset_manual_screening <-
+upset_manual_screening_false_positive <-
   pub_crossregs_manual_screened |>
   select(trn1,
          trn2,
          trn_in_pub_si,
          trn_in_pub_abs,
          trn_in_pub_ft,
-         standardized_pair
+         standardized_pair,
+         is_true_crossreg
   ) |>
   rename(
     "trn in SI" = trn_in_pub_si,
     "trn in abstract" = trn_in_pub_abs,
     "trn in full text" = trn_in_pub_ft,
   ) |>
-  pivot_longer(cols = -c(trn1, trn2, standardized_pair), names_to = "link") |>
+  pivot_longer(cols = -c(trn1, trn2, standardized_pair, is_true_crossreg), names_to = "link") |>
   filter(value == TRUE) |>
   group_by(trn1, trn2) |>
   mutate(links = list(link)) |>
@@ -166,12 +167,9 @@ upset_manual_screening <-
   select(-value, -link) |>
   distinct()
 
-upset_manual_false_positive <- upset_manual_screening |>
-  left_join(manual_screening_standardized, by = "standardized_pair")
-
 # Plot false positives in pub linkages
 
-pub_linking_combinations_false_positive <- upset_manual_false_positive |> 
+pub_linking_combinations_false_positive <- upset_manual_screening_false_positive |> 
   ggplot(aes(x = links, fill = is_true_crossreg)) + 
   geom_bar(position = "stack") + 
   geom_text(
