@@ -112,23 +112,23 @@ ct_euctr_reg_linked <- trn_filtered |>
 #  filter(is_title_matched)
 
 # Count how many EUCTR trials mention the corresponding CT number in their registry
-ct_euctr_mention <- ct_euctr_reg_linked |>
+ct_id_in_euctr <- ct_euctr_reg_linked |>
   filter((registry1 == "EudraCT" & trn2inreg1 == TRUE) | (registry2 == "EudraCT" & trn1inreg2 == TRUE)) |>
   select(standardized_pair)
 
 # Count how many CT trials mention the corresponding EUCTR number in their registry
-euctr_ct_mention <- ct_euctr_reg_linked |>
+euctr_id_in_ctgov <- ct_euctr_reg_linked |>
   filter((registry1 == "ClinicalTrials.gov" & trn2inreg1 == TRUE) | (registry2 == "ClinicalTrials.gov" & trn1inreg2 == TRUE)) |>
   select(standardized_pair)
 
 # Count how many match on title
-ct_euctr_title_match_count <- sum(replace_na(ct_euctr_reg_linked$is_title_matched, FALSE))
+ct_euctr_title_match_count <- sum(ct_euctr_reg_linked$is_title_matched)
 ct_euctr_title_match_percentage <- (ct_euctr_title_match_count/ nrow(ct_euctr_reg_linked) ) * 100
 
 # Create the CT-EUCTR Venn Diagram
 ct_euctr_venn <- list(
-  "CT Number mentioned in EUCTR" = ct_euctr_mention$standardized_pair,
-  "EUCTR Number mentioned in CT" = euctr_ct_mention$standardized_pair #,
+  "CT Number mentioned in EUCTR" = ct_id_in_euctr$standardized_pair,
+  "EUCTR Number mentioned in CT" = euctr_id_in_ctgov$standardized_pair #,
 #  "Matched on title" = ct_euctr_title_matched$standardized_pair
 )
 
@@ -165,24 +165,24 @@ drks_euctr_reg_linked <- trn_filtered |>
 #  filter(is_title_matched)
 
 # Count how many EUCTR trials mention the corresponding DRKS number in their registry
-drks_euctr_mention <- drks_euctr_reg_linked |>
+drks_id_in_euctr <- drks_euctr_reg_linked |>
   filter((registry1 == "EudraCT" & trn2inreg1 == TRUE) | (registry2 == "EudraCT" & trn1inreg2 == TRUE)) |>
   select(standardized_pair)
 
 
 # Count how many DRKS trials mention the corresponding EUCTR number in their registry
-euctr_drks_mention <- drks_euctr_reg_linked |>
+euctr_id_in_drks <- drks_euctr_reg_linked |>
   filter((registry1 == "DRKS" & trn2inreg1 == TRUE) | (registry2 == "DRKS" & trn1inreg2 == TRUE)) |>
   select(standardized_pair)
 
 # Count how many match on title
-drks_euctr_title_match_count <- sum(replace_na(drks_euctr_reg_linked$is_title_matched, FALSE))
+drks_euctr_title_match_count <- sum(drks_euctr_reg_linked$is_title_matched)
 drks_euctr_title_match_percentage <- (drks_euctr_title_match_count/ nrow(drks_euctr_reg_linked) ) * 100
 
 # Create the Venn Diagram
 drks_euctr_venn <- list(
-  "DRKS Number mentioned in EUCTR" = drks_euctr_mention$standardized_pair,
-  "EUCTR Number mentioned in DRKS" = euctr_drks_mention$standardized_pair #,
+  "DRKS Number mentioned in EUCTR" = drks_id_in_euctr$standardized_pair,
+  "EUCTR Number mentioned in DRKS" = euctr_id_in_drks$standardized_pair #,
 # "Trials matched on title" = drks_euctr_title_matched$standardized_pair
   )
 
