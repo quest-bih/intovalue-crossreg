@@ -64,47 +64,6 @@ trn_filtered <- trn_filtered |>
     # unidirectional = if_else((trn1inreg2 | trn2inreg1), TRUE, FALSE)
   ) 
 
-# Filter for true cross-registrations
-#confirmed_crossreg_standardized <- manual_validation |>
-#  filter(is_true_crossreg) |>
-#  standardize_pairs() |>
-#  select(standardized_pair, is_true_crossreg)
-
-# Join true crossreg with larger table by standardized_pair
-#confirmed_crossreg <- confirmed_crossreg_standardized |>
-#  left_join(trn_manual_checks_standardized, by = "standardized_pair") |>
-#  mutate(is_true_crossreg = ifelse(standardized_pair == "2010-023688-16_NCT01326767", TRUE, is_true_crossreg))|> # Manually change is_true_crossreg back to TRUE for row "2010-023688-16_NCT01326767", not sure why it changes at all
-#  filter(is_true_crossreg)
-
-# Filter for trials linked by publication in any way
-#pub_crossregs <- confirmed_crossreg |>
-#  filter(at_least_one_pub) |>
-#  mutate(
-#    trn1_in_pub_abs = replace_na(trn1_in_pub_abs, FALSE),
-#    trn2_in_pub_abs = replace_na(trn2_in_pub_abs, FALSE),
-#    trn_in_pub_abs = trn1_in_pub_abs | trn2_in_pub_abs,
-    
-#    trn1_in_pub_si = replace_na(trn1_in_pub_si, FALSE),
-#    trn2_in_pub_si = replace_na(trn2_in_pub_si, FALSE),
-#    trn_in_pub_si = trn1_in_pub_si | trn2_in_pub_si,
-    
-#    trn1_in_pub_ft = replace_na(trn1_in_pub_ft, FALSE),
-#    trn2_in_pub_ft = replace_na(trn2_in_pub_ft, FALSE),
-#    trn_in_pub_ft = trn1_in_pub_ft | trn2_in_pub_ft
-#  )
-
-# Filter for trials linked by FT mention
-#pub_ft <- pub_crossregs |>
-#  filter(trn1_in_pub_ft | trn2_in_pub_ft)
-
-# Filter for trials linked by SI mention
-#pub_si <- pub_crossregs |>
-#  filter(trn1_in_pub_si | trn2_in_pub_si)
-
-# Filter for trials linked by abstract mention
-#pub_abs <- pub_crossregs |>
-#  filter(trn1_in_pub_abs | trn2_in_pub_abs)
-
 ############################################################################
 # Upset plot for screened TRN pairs
 # Will show true positives/false positives in each category
