@@ -2,17 +2,9 @@
 # and the cross registrations we found
 
 library(tidyverse)
-library(VennDiagram)
 library(here)
-library(lubridate)
-library(here)
-library(fs)
-library(lubridate)
-library(stringr)
 library(ctregistries)
-library(cli)
 library(ggvenn)
-library(eulerr)
 
 # Function to standardize trial pairs, give them unique identifier
 standardize_pairs <- function(df) {
@@ -27,7 +19,9 @@ standardize_pairs <- function(df) {
 
 
 # Load TRN manual checks first
-trn_manual_checks <- read_rds("data/crossreg_pipeline_output.rds")
+trn_manual_checks <- read_rds(here("data","crossreg_pipeline_output.rds"))
+
+
 trn_filtered <- trn_manual_checks |>
   filter(priority <= 4 )
 
@@ -39,7 +33,7 @@ trn_resolves <- trn_filtered |>
   filter(trn2 != "2008-004408-29")
 
 # read in ECRIN information
-ecrin <- read_csv("data/20241025_mdr_identifiers.csv") |>
+ecrin <- read_csv(here("data", "20241025_mdr_identifiers.csv")) |>
   rename(trn1 = iv_id,
          trn2 = identifier) |>
   filter(identifier_type == "Trial registry ID") |>
@@ -57,6 +51,7 @@ iv_distinct <- ecrin |>
   
 
 ecrin_errors <- read_csv("data/20241025_mdr_identifiers_errors.csv")
+
 
 
 # Apply the function to both datasets (do NOT filter for trials that resolve in TRN)
