@@ -335,4 +335,4 @@ joined_data <- joined_data |>
 
 ### EXPORT FINAL DATASET
 
-#write.csv(joined_data, here::here("data", "manual_validation_processed.csv"), row.names = FALSE)
+#write_csv(joined_data, here::here("data", "manual_validation_processed.csv"))
