@@ -11,6 +11,10 @@ library(ggplot2)
 library(dRks)
 library(lubridate)
 
+# Load in list of screened trial pairs to limit analysis to manually confirmed crossreg
+manual_screening <- read.csv(here("data", "manual_validation_processed.csv"))
+manual_confirmed <- manual_screening |>
+  filter(is_true_crossreg)
 
 # DRKS
 ##### load IntoValue dataset from OSF and pull DRKS trial IDs
@@ -43,7 +47,8 @@ drks_prereg_info <- drks_prereg_info |>
 drks_prereg_info |>
   write_csv(here("data", "prereg_processed", "iv_drks_prereg.csv"))
 
-
+# Read in code here because my version of R can't run dRks package
+drks_prereg_info <- read_csv(here("data", "prereg_processed", "iv_drks_prereg.csv"))
 # CLinicalTrials.gov
 # Data was downloaded from AACT (20240927) and processed to obtain prospective registration
 # has_prospective_registration = floor_date(start_date, unit = "month") >=
@@ -69,9 +74,13 @@ prereg_combined <- prereg_combined |>
 
 write_csv(prereg_combined, here("data", "prereg_processed", "iv_prereg_combined.csv"))
 
+# Filter prereg_combined so that it only includes TRNs that have been confirmed as crossregs
+prereg_combined_confirmed <- prereg_combined |>
+  filter(id %in% manual_confirmed$trn1 | id %in% manual_confirmed$trn2)
+
 # Plot number/proportion of trials in each registry prospectively/retrospectively registered
 # Summarize data
-summary <- prereg_combined |> 
+summary <- prereg_combined_confirmed |> 
   group_by(registry, has_prospective_registration) |> 
   summarise(count = n(), .groups = "drop") |> 
   group_by(registry) |> 
