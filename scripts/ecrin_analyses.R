@@ -78,9 +78,9 @@ base_ecrin_venn <- ggvenn(
 )
 
 base_ecrin_venn +
-  annotate("label", x = -1.5, y = 0, label = "Approach of the present study",
+  annotate("label", x = -1.5, y = 0.3, label = "Approach of the present study",
            fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) +
-  annotate("label", x = 1.2, y = 0, label = "ECRIN Approach",
+  annotate("label", x = 1.2, y = 0.3, label = "ECRIN Approach",
            fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
 
 #######################################################################################
