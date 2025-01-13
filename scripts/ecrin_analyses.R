@@ -19,19 +19,19 @@ standardize_pairs <- function(df) {
 
 
 # Load TRN manual checks first
-trn_manual_checks <- read_rds(here("data","crossreg_pipeline_output.rds"))
+potential_crossregs <- read_rds(here("data","crossreg_pipeline_output.rds"))
 
 # Here, we are filtering for trials with a priority of 4 or lower (priority 4 = trial identifier mentioned in another trial's related publication), as our pilot manual review of trial pairs with priority > 4 revealed low precision for correctly identified true cross-registrations
 # Unlike in other scripts, we do not filter out pairs that don't resolve in EUCTR or DRKS.
 # We took this decision because ECRIN does not make any claims about the validity of a cross registration 
 # Like our approach, it merely compiles potential cross-registrations. Since the point of this analysis is not to screen and confirm cross-registrations, but 
 # to identify how these two searching approaches overlap, it is appropriate to leave TRN pairs that may not resolve in a registry
-trn_filtered <- trn_manual_checks |>
+trn_filtered <- potential_crossregs |>
   filter(priority <= 4 )
 
 # Including this table allows us to identify further overlap between ECRIN results, and trial pairs 
 # identified by our approach, but excluded from trn_filtered for their Priorities
-trn_manual_standardized <- standardize_pairs(trn_manual_checks)
+potential_crossregs_standardized <- standardize_pairs(potential_crossregs)
 
 
 
