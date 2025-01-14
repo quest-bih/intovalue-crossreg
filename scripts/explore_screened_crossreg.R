@@ -21,7 +21,7 @@ standardize_pairs <- function(df) {
 
 # Load data
 # `manual_validation_processed.csv` contains all screened cross-registrations, and has a variable `is_true_crossreg` that labels those that were confirmed as true cross-registrations
-manual_screening <- read.csv(here("data", "manual_validation_processed.csv"))
+manual_screening <- read_csv(here("data", "manual_validation_processed.csv"))
 potential_crossreg<- read_rds(here("data", "crossreg_pipeline_output.rds"))
 
 # Standardize list of manually screened pairs
@@ -190,7 +190,8 @@ pub_linking_combinations_false_positive <- upset_manual_screening_false_positive
 
 ################################################################################
 
-# Investigate how false positive (screened, but not confirmed) cross-registrations are connected ( 8/9 false positives are Category 4, so this will be investigated here)
+# Investigate how false positives (manually screened, but not confirmed) cross-registrations are connected 
+# (8/9 false positives are linked only via a publication, 1/9 is connected via a unidirectional registry link)
 
 # Filter for false cross-registrations
 false_crossreg_standardized <- manual_screening_standardized |>
