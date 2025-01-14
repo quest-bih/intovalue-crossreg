@@ -1,6 +1,6 @@
-# A script to evaluate the degree of overlap between ECRIN MDR cross registrations
-# and the cross registrations we found
-
+# A script to evaluate the degree of overlap between potential cross-registrations identified via our approach and 
+# inferred cross-registrations based on data in the 
+# Clinical Research Metadata Repository (MDR) from ECRIN (https://ecrin.org/clinical-research-metadata-repository)
 library(tidyverse)
 library(here)
 library(ctregistries)
@@ -37,20 +37,22 @@ potential_crossregs_standardized <- standardize_pairs(potential_crossregs)
 
 # read in ECRIN information
 ecrin <- read_csv(here("data", "20241025_mdr_identifiers.csv")) |>
-  rename(trn1 = iv_id,
-         trn2 = identifier) |>
   filter(identifier_type == "Trial registry ID") |>
-  filter( identifier_source == "EU Clinical Trials Register")
+  filter(identifier_source == "EU Clinical Trials Register")
+  rename(trn1 = iv_id,
+         trn2 = identifier) 
 
 # num of distinct EUCTR trials
-euctr_distinct <- ecrin |>
+ecrin |>
   select(trn2) |>
-  distinct()
+  distinct() |>
+  nrow()
 
 # num of distinct IV trials
-iv_distinct <- ecrin |>
+ecrin |>
   select(trn1) |>
-  distinct()
+  distinct() |>
+  nrow()
   
 
 # Apply the function to both datasets (do NOT filter for trials that resolve in TRN)
