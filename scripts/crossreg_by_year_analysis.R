@@ -31,6 +31,10 @@ intovalue <- intovalue |>
   )
 
 # Summarize data by year
+# NOTE: trn_filtered identifies 625 distinct pairs of TRNs that are potential cross-registrations
+# However, in the `intovalue` data frame used above, only 614 trials are marked as potential cross-registrations
+# This discrepancy is due to the fact that 11 intovalue TRNs (in ClinicalTrials.gov or DRKS) are connected to more than one EUCTR trial. 
+# Thus, while these connections are captured in trn_filtered, each intovalue TRN is only listed once in the `intovalue` data frame.
 summary_by_year <- intovalue |> 
   group_by(completion_year) |> 
   summarise(
