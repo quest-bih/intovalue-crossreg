@@ -91,7 +91,7 @@ unique_to_crossreg_pipeline <- setdiff(potential_crossregs_filtered_standardized
 
 # Summary counts
 total_ecrin <- length(ecrin_pairs_vector)
-total_trn <- length(potential_crossregs_filtered_standardized_vector)
+total_potential_crossregs_filtered <- length(potential_crossregs_filtered_standardized_vector)
 common_count <- length(common_pairs)
 unique_to_ecrin_count <- length(unique_to_ecrin)
 unique_to_crossreg_pipeline_count <- length(unique_to_crossreg_pipeline)
