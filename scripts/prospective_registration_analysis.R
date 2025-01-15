@@ -96,9 +96,10 @@ ggplot(summary, aes(x = registry, y = proportion * 100, fill = has_prospective_r
   labs(
     x = "Registry",
     y = "Percentage of Trials",
-    fill = "Prospective registration"
+    fill = ""
   ) +
-  scale_y_continuous(labels = scales::percent_format(scale = 1)) + 
+  scale_y_continuous(labels = scales::percent_format(scale = 1),
+                     limits = c(0, 100)) + 
   scale_fill_manual(
     values = c("TRUE" = "steelblue", "FALSE" = "grey"),
     labels = c("TRUE" = "Registered prospectively", "FALSE" = "Registered retrospectively")
