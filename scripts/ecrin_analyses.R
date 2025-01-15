@@ -26,11 +26,11 @@ potential_crossregs <- read_rds(here("data","crossreg_pipeline_output.rds"))
 # We took this decision because ECRIN does not make any claims about the validity of a cross registration 
 # Like our approach, it merely compiles potential cross-registrations. Since the point of this analysis is not to screen and confirm cross-registrations, but 
 # to identify how these two searching approaches overlap, it is appropriate to leave TRN pairs that may not resolve in a registry
-trn_filtered <- potential_crossregs |>
+potential_crossregs_filtered <- potential_crossregs |>
   filter(priority <= 4 )
 
 # Including this table allows us to identify further overlap between ECRIN results, and trial pairs 
-# identified by our approach, but excluded from trn_filtered for their Priorities
+# identified by our approach, but excluded from potential_crossregs_filtered for their Priorities
 potential_crossregs_standardized <- standardize_pairs(potential_crossregs)
 
 
@@ -57,17 +57,17 @@ ecrin |>
 
 # Apply the function to both datasets (do NOT filter for trials that resolve in TRN)
 ecrin_standardized <- standardize_pairs(ecrin)
-crossreg_pipeline_pairs_standardized <- standardize_pairs(trn_filtered)
+potential_crossregs_filtered_standardized <- standardize_pairs(potential_crossregs_filtered)
 
 # Convert to vectors for easy comparison
 ecrin_pairs_vector <- ecrin_standardized$standardized_pair
-crossreg_pipeline_pairs_vector <- crossreg_pipeline_pairs_standardized$standardized_pair
+potential_crossregs_filtered_standardized_vector <- potential_crossregs_filtered_standardized$standardized_pair
 
 #######################################################################################
 # New, cleaner approach to Venn diagrams to visualize overlap between our approach and the ECRIN approach
 
 ecrin_venn_data <- list(
-  "Approach of the present study" = crossreg_pipeline_pairs_vector,
+  "Approach of the present study" = potential_crossregs_filtered_standardized_vector,
   "ECRIN Approach" = ecrin_pairs_vector
   )
 
@@ -88,14 +88,14 @@ base_ecrin_venn +
 #######################################################################################
 # Here we identify the trial pairs unique to ECRIN's approach and our approach, and where our approaches overlapped
 
- common_pairs <- intersect(ecrin_pairs_vector, crossreg_pipeline_pairs_vector)
- unique_to_ecrin <- setdiff(ecrin_pairs_vector, crossreg_pipeline_pairs_vector)
- unique_to_trn <- setdiff(crossreg_pipeline_pairs_vector, ecrin_pairs_vector)
+ common_pairs <- intersect(ecrin_pairs_vector, potential_crossregs_filtered_standardized_vector)
+ unique_to_ecrin <- setdiff(ecrin_pairs_vector, potential_crossregs_filtered_standardized_vector)
+ unique_to_trn <- setdiff(potential_crossregs_filtered_standardized_vector, ecrin_pairs_vector)
 
 
 # Summary counts
 total_ecrin <- length(ecrin_pairs_vector)
-total_trn <- length(crossreg_pipeline_pairs_vector)
+total_trn <- length(potential_crossregs_filtered_standardized_vector)
 common_count <- length(common_pairs)
 unique_to_ecrin_count <- length(unique_to_ecrin)
 unique_to_trn_count <- length(unique_to_trn)
