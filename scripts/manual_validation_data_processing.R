@@ -46,9 +46,6 @@ data[data$trn2 == "NCT01510704",]$completion_date_reg2 <- ymd("2012-04-30")
 # For NCT00351403 - 2006-000358-38, `completion_date_type_reg1` should be changed from “Global” to “Actual”
 data[data$trn1 == "NCT00351403",]$completion_date_type_reg1 <- "Actual"
 
-# For 2009-017520-88 - NCT01231854, `has_summary_results_reg1 _main` should be FALSE
-data[data$trn1 == "2009-017520-88",]$has_summary_results_reg1_main <- FALSE
-
 # For 2012-004555-36 - NCT01797861, information regarding “no DE protocol available” needs to be moved from the population_comment column to the general_comment column
 
   # Paste text in general_comment column
@@ -66,6 +63,10 @@ data$general_comment[data$trn1 == "2012-002699-14"] <- paste(data$general_commen
 data$general_comment[data$trn1 == "2009-014076-22"] <- NA
 
 # Correct is_true_crossreg (from TRUE to FALSE) for pair NCT01422512 - 2011-006277-25
+# The two trials were considered initially as a true cross-registration due to them matching on almost all aspects.
+# However, upon inspection these TRN are from different trials: 2011-006277-25 was from Seasonal Optaflu trial 2012/13 
+# and NCT01422512 from Seasonal Optaflu trial 2011/12. Therefore, they are not a true cross-registered trial.
+
 data[data$trn1 == "NCT01422512",]$is_true_crossreg <- FALSE
 
 #### REMOVE SUMMARY RESULT COLUMNS ####
@@ -132,8 +133,6 @@ data <- data |>
 # completion_date_reg2, completion_date_type_reg2, completion_month_year_reg2,
 # recruitment_status_reg1, overall_recruitment_status_reg1,
 # recruitment_status_reg2, overall_recruitment_status_reg2, 
-# has_summary_results_reg1_main, has_summary_results_reg1_sensitivity,
-# has_summary_results_reg2_main, has_summary_results_reg2_sensitivity
 
 # SPLIT THE DATASET
 # Extract data to transform
@@ -208,6 +207,14 @@ sumres <- read_xlsx(here("data", "sumres.xlsx"),
 # Convert dates to Date format with lubridate()
 sumres$date_of_check_sumres <- ymd(sumres$date_of_check_sumres)
 
+# Correction for DRKS00002070 
+# initially in the column drks_publication_of_study_results_field the label was non_resolving, due to a link
+# to the publication that did not resolve. However, it also showed the information of the paper citation.
+# Given this contradiction, the decision was to label this case as no_result
+
+sumres[sumres$trn2 == "DRKS00002070",]$drks_publication_of_study_results_field <- "no_results"
+
+# Create summary result columns
 sumres <- sumres |>
   mutate(
     # only TRUE if structured results
@@ -357,11 +364,13 @@ discrepancy_data |>
   print(n = Inf)
 
 # Round the completion_date_protocol column:
+
 joined_data <- joined_data |> 
   mutate(
     completion_month_year_protocol = lubridate::floor_date(completion_date_protocol, unit = "month"),
   ) |> 
-  relocate(completion_month_year_protocol, .after = completion_month_year_reg1)
+  relocate(completion_date_protocol, .after = completion_date_type_reg1) |>
+  relocate(completion_month_year_protocol, .after = completion_date_protocol)
 
 ### EXPORT FINAL DATASET
 
