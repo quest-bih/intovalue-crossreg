@@ -109,7 +109,6 @@ trn_combos_potential_crossreg <-
   distinct()
 
 # Join information on precision from the manual check with upset-friendly format of `trn_combos_potential_crossreg` to make upset w/ false positivity information
-# NOTE: The editing of 2010-023688-16_NCT01326767 will no longer be necessary after receiving updated manual_validation_processed.csv file without white spaces
 manual_screening_upset <- manual_screening_standardized |>
   left_join(trn_combos_potential_crossreg, by = "standardized_pair") 
 
@@ -210,7 +209,6 @@ false_crossreg <- false_crossreg_standardized |>
 # Full table containing only screened and confirmed crossregs
 #validated_crossreg <- trn_filtered |>
 #  left_join(manual_validated_standardized, by = "standardized_pair") |> 
-#  mutate(is_true_crossreg = ifelse(standardized_pair == "2010-023688-16_NCT01326767", TRUE, is_true_crossreg))|> # Manually change is_true_crossreg back to TRUE for row "2010-023688-16_NCT01326767", not sure why it changes at all
 #  filter(is_true_crossreg)
 
 # Make validated_crossreg readable for ggupset package 
