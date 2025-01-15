@@ -85,15 +85,23 @@ summary <- prereg_combined_confirmed |>
   mutate(proportion = count / sum(count))
 
 # Plot grouped bar chart with counts and proportions
-ggplot(summary, aes(x = registry, y = count, fill = has_prospective_registration)) +
+ggplot(summary, aes(x = registry, y = proportion * 100, fill = has_prospective_registration)) +
   geom_bar(stat = "identity", position = "dodge") + # Grouped bars
-  geom_text(aes(label = sprintf("%.1f%%", round(proportion * 100))), 
-            position = position_dodge(width = 0.9), vjust = -0.5, size = 3.5) + # Add proportion labels
+  geom_text(
+    aes(label = sprintf("%.1f%% (%d)", round(proportion * 100, 1), count)), # Percentage with count
+    position = position_dodge(width = 0.9),
+    vjust = -0.5,
+    size = 3.5
+  ) +
   labs(
-    # title = "Prospective registration by registry",
     x = "Registry",
-    y = "Number of Trials",
+    y = "Percentage of Trials",
     fill = "Prospective registration"
   ) +
-  theme_minimal() +
-  scale_fill_manual(values = c("TRUE" = "steelblue", "FALSE" = "grey")) 
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) + 
+  scale_fill_manual(
+    values = c("TRUE" = "steelblue", "FALSE" = "grey"),
+    labels = c("TRUE" = "Registered prospectively", "FALSE" = "Registered retrospectively")
+  ) +
+  theme_minimal()
+
