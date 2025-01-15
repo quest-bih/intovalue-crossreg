@@ -208,9 +208,10 @@ sumres <- read_xlsx(here("data", "sumres.xlsx"),
 sumres$date_of_check_sumres <- ymd(sumres$date_of_check_sumres)
 
 # Correction for DRKS00002070 
-# initially in the column drks_publication_of_study_results_field the label was non_resolving, due to a link
-# to the publication that did not resolve. However, it also showed the information of the paper citation.
-# Given this contradiction, the decision was to label this case as no_result
+# Initially we set "drks_publication_of_study_results_field" to "non_resolving", as two publication links
+# were provided in the registry but did not resolve. However, the registry field also includes a comment
+# that the trial was terminated early and not published (pub dates are also earlier than the dates in the registry).
+# Therefore, we decided to label this case as "no_results".
 
 sumres[sumres$trn2 == "DRKS00002070",]$drks_publication_of_study_results_field <- "no_results"
 
