@@ -64,11 +64,11 @@ ecrin_pairs_vector <- ecrin_standardized$standardized_pair
 potential_crossregs_filtered_standardized_vector <- potential_crossregs_filtered_standardized$standardized_pair
 
 #######################################################################################
-# New, cleaner approach to Venn diagrams to visualize overlap between our approach and the ECRIN approach
+# New, cleaner approach to Venn diagrams to visualize overlap between our approach and using data from the MDR
 
 ecrin_venn_data <- list(
   "Approach of the present study" = potential_crossregs_filtered_standardized_vector,
-  "ECRIN Approach" = ecrin_pairs_vector
+  "MDR Data" = ecrin_pairs_vector
   )
 
 base_ecrin_venn <- ggvenn(
@@ -82,15 +82,15 @@ base_ecrin_venn <- ggvenn(
 base_ecrin_venn +
   annotate("label", x = -1.5, y = 0.3, label = "Approach of the present study",
            fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) +
-  annotate("label", x = 1.2, y = 0.3, label = "ECRIN Approach",
+  annotate("label", x = 1.2, y = 0.3, label = "MDR Data",
            fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
 
 #######################################################################################
-# Here we identify the trial pairs unique to ECRIN's approach and our approach, and where our approaches overlapped
+# Here we identify the trial pairs unique to the MDR data and our approach, and where our approaches overlapped
 
- common_pairs <- intersect(ecrin_pairs_vector, potential_crossregs_filtered_standardized_vector)
- unique_to_ecrin <- setdiff(ecrin_pairs_vector, potential_crossregs_filtered_standardized_vector)
- unique_to_trn <- setdiff(potential_crossregs_filtered_standardized_vector, ecrin_pairs_vector)
+common_pairs <- intersect(ecrin_pairs_vector, potential_crossregs_filtered_standardized_vector)
+unique_to_ecrin <- setdiff(ecrin_pairs_vector, potential_crossregs_filtered_standardized_vector)
+unique_to_crossreg_pipeline <- setdiff(potential_crossregs_filtered_standardized_vector, ecrin_pairs_vector)
 
 
 # Summary counts
@@ -98,7 +98,7 @@ total_ecrin <- length(ecrin_pairs_vector)
 total_trn <- length(potential_crossregs_filtered_standardized_vector)
 common_count <- length(common_pairs)
 unique_to_ecrin_count <- length(unique_to_ecrin)
-unique_to_trn_count <- length(unique_to_trn)
+unique_to_crossreg_pipeline_count <- length(unique_to_crossreg_pipeline)
 
 ###################################################################################################
 
