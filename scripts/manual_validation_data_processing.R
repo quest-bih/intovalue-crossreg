@@ -65,6 +65,18 @@ data$general_comment[data$trn1 == "2012-002699-14"] <- paste(data$general_commen
   # Delete comment from general_comment column 
 data$general_comment[data$trn1 == "2009-014076-22"] <- NA
 
+#### REMOVE SUMMARY RESULT COLUMNS ####
+# These columns will be re-generated computationally in a section below.
+
+data <- data |>
+  select(
+    -has_summary_results_reg1_main,
+    -has_summary_results_reg2_main,
+    -has_summary_results_reg1_sensitivity,
+    -has_summary_results_reg2_sensitivity,
+    -comment_summary_results
+  )
+
 #### CREATE ROUNDED COMPLETION DATE COLUMNS FOR DISCREPANCY ANALYSIS ####
 
 data <- data |> 
@@ -146,9 +158,7 @@ data_transformed <- drks_ctgov_data |>
   flip_columns("completion_month_year_reg1", "completion_month_year_reg2") |>
   flip_columns("completion_date_type_reg1", "completion_date_type_reg2") |>
   flip_columns("recruitment_status_reg1", "recruitment_status_reg2") |>
-  flip_columns("overall_recruitment_status_reg1", "overall_recruitment_status_reg2") |>
-  flip_columns("has_summary_results_reg1_main", "has_summary_results_reg2_main") |>
-  flip_columns("has_summary_results_reg1_sensitivity", "has_summary_results_reg2_sensitivity")
+  flip_columns("overall_recruitment_status_reg1", "overall_recruitment_status_reg2")
 
 #### QUALITY CHECK OF TRANSFORMATION ####
 # The idea is to compare the columns from data_transformed with the columns from drks_ctgov_data (before transformation)
@@ -171,9 +181,7 @@ column_pairs <- list(
   c("completion_month_year_reg1", "completion_month_year_reg2"),
   c("completion_date_type_reg1", "completion_date_type_reg2"),
   c("recruitment_status_reg1", "recruitment_status_reg2"),
-  c("overall_recruitment_status_reg1", "overall_recruitment_status_reg2"),
-  c("has_summary_results_reg1_main", "has_summary_results_reg2_main"),
-  c("has_summary_results_reg1_sensitivity", "has_summary_results_reg2_sensitivity"))
+  c("overall_recruitment_status_reg1", "overall_recruitment_status_reg2"))
 
 # Perform comparisons
 for (pair in column_pairs) {
@@ -185,9 +193,98 @@ for (pair in column_pairs) {
 
 joined_data <- bind_rows(euctr_data, data_transformed)
 
-#### CREATE COLUMN FOR SECOND SENSITIVITY ANALYSIS SUMMARY RESULTS ####
+#### CREATE COLUMNS FOR SUMMARY RESULTS ANALYSES ####
 
+# Derive booleans for results reporting
+sumres <- read_xlsx(here("data", "sumres.xlsx"),
+                    col_types = c("text", "text", "text", "text",
+                                  "logical", "text", "text", "logical",
+                                  "logical", "logical", "text", "text",
+                                  "text", "date"))
 
+# Convert dates to Date format with lubridate()
+sumres$date_of_check_sumres <- ymd(sumres$date_of_check_sumres)
+
+sumres <- sumres |>
+  mutate(
+    # only TRUE if structured results
+    has_summary_results_reg1_main = if_else(
+      sumres_euctr == "structured_results", TRUE, FALSE
+    ),
+    has_summary_results_reg1_sensitivity = if_else(
+      str_detect(sumres_euctr, "structured_results|synopsis_or_report|tabular_results_other_registry|statement_termination|uploaded_pub_citation|uploaded_pub_or_abstract"), 
+      TRUE, FALSE
+    ),
+    # both sensitivity analyses are the same for EUCTR since we already include
+    # links to publications in the summary results field
+    has_summary_results_reg1_sensitivity_v2 = has_summary_results_reg1_sensitivity,
+    # CTGOV main: TRUE if structured results
+    # DRKS main: always FALSE as it doesn't offer structured results format
+    has_summary_results_reg2_main = 
+      if_else(
+        registry2 == "ClinicalTrials.gov" & ctgov_results_overview_field == "structured_results",
+        TRUE, FALSE
+      ),
+    has_summary_results_reg2_sensitivity = 
+      # DRKS first sensitivity: TRUE if other format available including pub link in results field, otherwise default to main analysis (which is always FALSE)
+      # CTGOV: main and first sensitivity analysis are the same since other formats can't be
+      # uploaded in the results overview and we only consider ctgov pubs in second sensitivity analysis
+      case_when(
+        registry2 == "DRKS" & str_detect(drks_publication_of_study_results_field, "report|tabular_results_other_registry|publink_or_pubcitation") | 
+          str_detect(drks_basic_reporting_field, "report|tabular_results_other_registry|publink_or_pubcitation") ~ TRUE, 
+        .default = has_summary_results_reg2_main
+      ),
+    has_summary_results_reg2_sensitivity_v2 =
+      # CTGOV: TRUE if there is a pub in the publications field, otherwise set it to
+      # first sensitivity analysis (which is the same as main analysis)
+      # DRKS: first and second sensitivity analysis are the same since we
+      # already count publications in the first sensitivity analysis
+      case_when(
+        registry2 == "ClinicalTrials.gov" & ctgov_publications_field_pubmed | ctgov_publications_field_general | ctgov_publications_field_results ~ TRUE, 
+        .default = has_summary_results_reg2_sensitivity
+      )
+  )
+
+# Check assumptions
+sumres_ctgov <- sumres |> filter(registry2 == "ClinicalTrials.gov")
+sumres_drks <- sumres |> filter(registry2 == "DRKS")
+
+# check that EUCTR first and second sensitivity analyses are always the same
+if (FALSE %in% (sumres$has_summary_results_reg1_sensitivity == sumres$has_summary_results_reg1_sensitivity_v2)) {
+  message("Something looks wrong, EUCTR first and second sensitivity analyses differ at points!")
+} else {
+  message("All good, EUCTR first and second sensitivity analyses are the same")
+}
+
+# check that DRKS first and second sensitivity analyses are the same
+if (FALSE %in% (sumres_drks$has_summary_results_reg2_sensitivity == sumres_drks$has_summary_results_reg2_sensitivity_v2)) {
+  message("Something looks wrong, DRKS first and second sensitivity analyses differ at points!")
+} else {
+  message("All good, DRKS first and second sensitivity analyses are the same")
+}
+
+# check that all DRKS entries for main analysis are FALSE
+if (unique(sumres_drks$has_summary_results_reg2_main) != FALSE) {
+  message("Something looks wrong, DRKS main analysis contains some TRUE values!")
+} else {
+  message("All good, DRKS main analysis is always FALSE")
+}
+
+# check that CTGOV main and first sensitivity analysis are the same
+if (FALSE %in% (sumres_ctgov$has_summary_results_reg2_main == sumres_ctgov$has_summary_results_reg2_sensitivity)) {
+  message("Something looks wrong, CTGOV main and first and sensitivity analyses differ at points!")
+} else {
+  message("All good, CTGOV main and first sensitivty analyses are the same")
+}
+
+# Add new columns to joined_data
+joined_data <- joined_data |>
+  left_join(
+    sumres |> select(trn1, trn2, 
+                     has_summary_results_reg1_main, has_summary_results_reg1_sensitivity, has_summary_results_reg1_sensitivity_v2,
+                     has_summary_results_reg2_main, has_summary_results_reg2_sensitivity, has_summary_results_reg2_sensitivity_v2),
+    by = c("trn1", "trn2")
+  )
 
 #### CREATE COLUMN FOR SENSITIVITY ANALYSIS COMPLETION DATE ####
 
