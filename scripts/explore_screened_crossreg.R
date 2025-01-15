@@ -188,7 +188,7 @@ pub_linking_combinations_false_positive <- upset_manual_screening_false_positive
 
 ################################################################################
 
-# Investigate how false positives (manually screened, but not confirmed) cross-registrations are connected 
+# Investigate how the 9 currently identified false positive (manually screened, but not confirmed) cross-registrations are connected 
 # (8/9 false positives are linked only via a publication, 1/9 is connected via a unidirectional registry link)
 
 # Filter for false cross-registrations
