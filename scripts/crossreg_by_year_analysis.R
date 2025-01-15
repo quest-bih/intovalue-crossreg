@@ -74,7 +74,7 @@ ggplot(summary_by_year, aes(x = completion_year, y = count, fill = crossreg_stat
   ) +
   labs(
     x = "Completion Year",
-    y = "Number of IntoValue trials (DRKS or ClinicalTrials.gov)",
+    y = "IntoValue trials (DRKS or ClinicalTrials.gov)",
     fill = "Potential EUCTR cross-registration"
   ) +
   theme_minimal()
