@@ -199,9 +199,9 @@ false_crossreg_standardized <- manual_screening_standardized |>
 false_crossreg <- false_crossreg_standardized |>
   left_join(trn_filtered, by = "standardized_pair")
 
-# Visual inspection of table shows that 8 are only connected by trn2_in_pub_ft
+# Visual inspection of table shows that 8/9 are only connected by trn2_in_pub_ft
 # In this case, 8 EUCTR numbers were mentioned in the full text of publications associated with 8 IntoValue TRNs
-# The 9th and last false positive cross registration was connected via a unidirectional registry link
+# The 9th and last false positive cross registration was connected via a unidirectional registry link, in which the IV registry mentions the EUCTR ID
 
 ################################################################################
 # Upset plot for all trials that were screened and CONFIRMED, across all links (not just publications)
