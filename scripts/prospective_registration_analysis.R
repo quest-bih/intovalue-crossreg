@@ -12,7 +12,7 @@ library(dRks)
 library(lubridate)
 
 # Load in list of screened trial pairs to limit analysis to manually confirmed crossreg
-manual_screening <- read.csv(here("data", "manual_validation_processed.csv"))
+manual_screening <- read_csv(here("data", "manual_validation_processed.csv"))
 manual_confirmed <- manual_screening |>
   filter(is_true_crossreg)
 
@@ -47,8 +47,6 @@ drks_prereg_info <- drks_prereg_info |>
 drks_prereg_info |>
   write_csv(here("data", "prereg_processed", "iv_drks_prereg.csv"))
 
-# Read in code here because my version of R can't run dRks package
-drks_prereg_info <- read_csv(here("data", "prereg_processed", "iv_drks_prereg.csv"))
 # CLinicalTrials.gov
 # Data was downloaded from AACT (20240927) and processed to obtain prospective registration
 # has_prospective_registration = floor_date(start_date, unit = "month") >=
