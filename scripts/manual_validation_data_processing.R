@@ -65,6 +65,9 @@ data$general_comment[data$trn1 == "2012-002699-14"] <- paste(data$general_commen
   # Delete comment from general_comment column 
 data$general_comment[data$trn1 == "2009-014076-22"] <- NA
 
+# Correct is_true_crossreg (from TRUE to FALSE) for pair NCT01422512 - 2011-006277-25
+data[data$trn1 == "NCT01422512",]$is_true_crossreg <- FALSE
+
 #### REMOVE SUMMARY RESULT COLUMNS ####
 # These columns will be re-generated computationally in a section below.
 
