@@ -111,8 +111,7 @@ trn_combos_potential_crossreg <-
 # Join information on precision from the manual check with upset-friendly format of `trn_combos_potential_crossreg` to make upset w/ false positivity information
 # NOTE: The editing of 2010-023688-16_NCT01326767 will no longer be necessary after receiving updated manual_validation_processed.csv file without white spaces
 manual_screening_upset <- manual_screening_standardized |>
-  left_join(trn_combos_potential_crossreg, by = "standardized_pair") |>
-  mutate(links = ifelse(standardized_pair == " 2010-023688-16_NCT01326767", "Bidirectional link", links)) # Manually change `links` back to `bidirectional` for row "2010-023688-16_NCT01326767", not sure why it changes at all
+  left_join(trn_combos_potential_crossreg, by = "standardized_pair") 
 
 # Upset plot showing screened TRN pairs, with false positivity displayed
 manual_screening_plot <- manual_screening_upset |> 
@@ -140,8 +139,7 @@ manual_screening_plot <- manual_screening_upset |>
 
 # Add information about true/false positivity on cross registration status to `trn_filtered`
 pub_crossregs_manual_screened<- manual_screening_standardized |>
-  left_join(trn_filtered, by = "standardized_pair") |>
-  mutate(is_true_crossreg = ifelse(standardized_pair == "2010-023688-16_NCT01326767", TRUE, is_true_crossreg)) # Manually change is_true_crossreg back to TRUE for row "2010-023688-16_NCT01326767", not sure why it changes at all
+  left_join(trn_filtered, by = "standardized_pair") 
 
 #Change format to make friendlier for ggupset
 upset_manual_screening_false_positive <-
@@ -201,8 +199,9 @@ false_crossreg_standardized <- manual_screening_standardized |>
 false_crossreg <- false_crossreg_standardized |>
   left_join(trn_filtered, by = "standardized_pair")
 
-# Visual inspection of table shows that all 8 are only connected by trn2_in_pub_ft
+# Visual inspection of table shows that 8 are only connected by trn2_in_pub_ft
 # In this case, 8 EUCTR numbers were mentioned in the full text of publications associated with 8 IntoValue TRNs
+# The 9th and last false positive cross registration was connected via a unidirectional registry link
 
 ################################################################################
 # Upset plot for all trials that were screened and CONFIRMED, across all links (not just publications)
