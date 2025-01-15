@@ -187,77 +187,7 @@ joined_data <- bind_rows(euctr_data, data_transformed)
 
 #### CREATE COLUMN FOR SECOND SENSITIVITY ANALYSIS SUMMARY RESULTS ####
 
-# Note: this analysis is currently under review: the comment_summary_results values are being double checked.
 
-# The purpose is to add a second sensitivity analysis, where we included any document linked (including publications added either automatically 
-# or manually) as TRUE for having summary results reported. The text in comment_summary_results is going to be used to identify all cases that would be 
-# false in this second sensitivity analysis, and everything else will be considered TRUE for having summary results.
-
-# Create new column
-
-joined_data <- joined_data |>
-  mutate(has_summary_results_reg1_sensitivity_v2 = if_else(
-    str_detect(comment_summary_results, 
-               "euctr no results|euctr: link to a summary that does not resolve|euctr link that does not resolve|euctr 
-               has link that does not resolve|euctr link to report that does not resolve|euctr links a synopsis that does 
-               not resolve|euctr link to synopsis that does not resolve|euctr link to summary trial results that does not resolve"),
-    FALSE, TRUE),
-    has_summary_results_reg2_sensitivity_v2 = if_else(
-      str_detect(comment_summary_results, 
-                 "drks no results|ctgov no results|ctgov results submitted to ClinicalTrials.gov but not posted|ctgov results submitted 
-                 but not posted|drks two links to publication that do not resolve"),
-      FALSE, TRUE)) |>
-  relocate(has_summary_results_reg1_sensitivity_v2, 
-           .after = has_summary_results_reg1_sensitivity) |>
-  relocate(has_summary_results_reg2_sensitivity_v2, 
-           .after = has_summary_results_reg2_sensitivity)
-
-# Validate new column value: verifying all columns of summary results with specific values in comment_summary_results
-
-spot_check_summary_results <- joined_data |>                         
-  select(has_summary_results_reg1_main, has_summary_results_reg1_sensitivity, 
-         has_summary_results_reg1_sensitivity_v2, has_summary_results_reg2_main,
-         has_summary_results_reg2_sensitivity, has_summary_results_reg2_sensitivity_v2,
-         comment_summary_results)
-
-spot_check_summary_results |>
-  mutate(
-    reg1_condition = str_detect(
-      comment_summary_results,
-      str_c("euctr no results",
-            "euctr: link to a summary that does not resolve",
-            "euctr link that does not resolve",
-            "euctr has link that does not resolve",
-            "euctr link to report that does not resolve",
-            "euctr links a synopsis that does not resolve",
-            "euctr link to synopsis that does not resolve",
-            "euctr link to summary trial results that does not resolve",
-            collapse = "|")),
-    reg2_condition = str_detect(
-      comment_summary_results,
-      str_c("ctgov results submitted to ClinicalTrials.gov but not posted",
-            "ctgov results submitted but not posted",
-            "drks two links to publication that do not resolve",
-            "ctgov no results",
-            "drks no results",
-            collapse = "|"))) |>
-  filter(
-    (reg1_condition & 
-       !(has_summary_results_reg1_main == FALSE &
-           has_summary_results_reg1_sensitivity == FALSE &
-           has_summary_results_reg1_sensitivity_v2 == FALSE)) |
-      (reg2_condition & 
-         !(has_summary_results_reg2_main == FALSE &
-             has_summary_results_reg2_sensitivity == FALSE &
-             has_summary_results_reg2_sensitivity_v2 == FALSE))) -> non_matching_rows
-
-#print result
-if (nrow(non_matching_rows) == 0) {
-  print("All columns are FALSE for the relevant conditions.")
-} else {
-  print("Not all columns are FALSE for the relevant conditions. Failed rows:")
-  print(non_matching_rows)
-}
 
 #### CREATE COLUMN FOR SENSITIVITY ANALYSIS COMPLETION DATE ####
 
