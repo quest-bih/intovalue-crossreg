@@ -8,14 +8,13 @@ editor: visual
 
 ```{r message = FALSE, warning = FALSE}
 
-final_data <- read.csv(here::here("data", "manual_validation_processed.csv"), sep = ",")
-
 library(tidyverse)
-library(stringr)
+library(here)
+library(ctregistries)
 library(patchwork)
 library(ggalt)
-library(ctregistries)
-library(here)
+
+final_data <- read_csv(here::here("data", "manual_validation_processed.csv"))
 ```
 
 # Manual validation analysis
@@ -63,7 +62,7 @@ trn_trn_table <- readRDS(here::here("data", "crossreg_pipeline_output.rds"))
 filtered_table <- trn_trn_table |>
   filter(priority >= 1 & priority <= 4, #select priorities with over 50% precision in pilot
          drks_removed == FALSE,         #remove TRNs from trials deleted from DRKS registry
-         euctr_id_in_euctr == TRUE,     #select TRNs that are available in EUCTR registry
+         euctr_id_in_euctr == TRUE,     #select TRNs that resolve in EUCTR registry
          trn2 != "2008-004408-29")      #exclude one additional non-resolving TRN from EUCTR
 
 #count of non-euctr trns
@@ -93,7 +92,7 @@ final_data |>
     count(priority, registry2)
 ```
 
-### Validated cross-registrations (n = 233)
+### Validated cross-registrations (n = 232)
 
 ```{r message = FALSE, warning = FALSE}
 
@@ -124,7 +123,7 @@ discrepancy_data |>
   count(registry2)
 ```
 
-The analysis was conducted on 200 observations, from which 186 were EUCTR-ClinicalTrials.gov pairs, and 14 were EUCTR-DRKS pairs. No missing data was found in `has_summary_results`, for both main and sensitivity analyses.
+The analysis was conducted on 199 observations, from which 185 were EUCTR-ClinicalTrials.gov pairs, and 14 were EUCTR-DRKS pairs. No missing data was found in `has_summary_results`, for both main and sensitivity analyses.
 
 ## Descriptive statistics
 
@@ -157,7 +156,7 @@ discrepancy_data |>
   group_by(result_label) |>
   summarise(count = n(), .groups = 'drop') |>
   mutate(percentage = count / sum(count) * 100) |>
-  mutate(label = paste0(count, " (", round(percentage, 1), "%)"))
+  mutate(label = paste0(count, " (", round(percentage, 0), "%)"))
 
 #ClinicalTrials.gov
 discrepancy_data |>
@@ -173,7 +172,7 @@ discrepancy_data |>
   group_by(result_label) |>
   summarise(count = n(), .groups = 'drop') |>
   mutate(percentage = count / sum(count) * 100) |>
-  mutate(label = paste0(count, " (", round(percentage, 1), "%)"))
+  mutate(label = paste0(count, " (", round(percentage, 0), "%)"))
 
 #DRKS
 discrepancy_data |>
@@ -189,12 +188,24 @@ discrepancy_data |>
   group_by(result_label) |>
   summarise(count = n(), .groups = 'drop') |>
   mutate(percentage = count / sum(count) * 100) |>
-  mutate(label = paste0(count, " (", round(percentage, 1), "%)"))
+  mutate(label = paste0(count, " (", round(percentage, 0), "%)"))
 ```
 
-### Sensitivity analysis
+### First sensitivity analysis
 
-For the sensitivity analysis, summary results were considered as reported (i.e. `has_summary_results_reg1_sensitivity == TRUE` or `has_summary_results_reg2_sensitivity == TRUE`) if a structure tabular result, link to a file that reported results (such as synopsis, study reports, etc.), or link to a termination statement was available in the registry.
+For the sensitivity analysis, summary results were considered as reported (i.e. `has_summary_results_reg1_sensitivity == TRUE` or `has_summary_results_reg2_sensitivity == TRUE`) if any of the following were available in the summary results section:
+
+-   Structured tabular result
+
+-   Link to a file that reported results (such as synopsis, study reports, etc.)
+
+-   Link to a termination statement
+
+-   Link to a publication citation
+
+-   Link to publication or abstract
+
+For ClinicalTrials.gov, the main and first sensitivity analysis are the same, since other formats can't be uploaded in the results overview section. Only in the second sensitivity analysis we consider publication links from ClinicalTrials.gov
 
 The results were classified in the same categories as the main analysis. The count and percentage were reported.
 
@@ -213,7 +224,7 @@ discrepancy_data |>
   group_by(result_label) |>
   summarise(count = n(), .groups = 'drop') |>
   mutate(percentage = count / sum(count) * 100) |>
-  mutate(label = paste0(count, " (", round(percentage, 1), "%)"))
+  mutate(label = paste0(count, " (", round(percentage, 0), "%)"))
 
 #ClinicalTrials.gov
 discrepancy_data |>
@@ -229,7 +240,7 @@ discrepancy_data |>
   group_by(result_label) |>
   summarise(count = n(), .groups = 'drop') |>
   mutate(percentage = count / sum(count) * 100) |>
-  mutate(label = paste0(count, " (", round(percentage, 1), "%)"))
+  mutate(label = paste0(count, " (", round(percentage, 0), "%)"))
 
 #DRKS
 discrepancy_data |>
@@ -245,10 +256,12 @@ discrepancy_data |>
   group_by(result_label) |>
   summarise(count = n(), .groups = 'drop') |>
   mutate(percentage = count / sum(count) * 100) |>
-  mutate(label = paste0(count, " (", round(percentage, 1), "%)"))
+  mutate(label = paste0(count, " (", round(percentage, 0), "%)"))
 ```
 
 ### Second sensitivity analysis
+
+This analysis extends the first sensitivity analysis to also included any publication link in ClinicalTrials.gov that was available in the publication section.
 
 #### Percentages
 
@@ -267,7 +280,7 @@ discrepancy_data |>
   group_by(result_label) |>
   summarise(count = n(), .groups = 'drop') |>
   mutate(percentage = count / sum(count) * 100) |>
-  mutate(label = paste0(count, " (", round(percentage, 1), "%)"))
+  mutate(label = paste0(count, " (", round(percentage, 0), "%)"))
 
 #ClinicalTrials.gov
 discrepancy_data |>
@@ -283,7 +296,7 @@ discrepancy_data |>
   group_by(result_label) |>
   summarise(count = n(), .groups = 'drop') |>
   mutate(percentage = count / sum(count) * 100) |>
-  mutate(label = paste0(count, " (", round(percentage, 1), "%)"))
+  mutate(label = paste0(count, " (", round(percentage, 0), "%)"))
 
 #DRKS
 discrepancy_data |>
@@ -299,12 +312,12 @@ discrepancy_data |>
   group_by(result_label) |>
   summarise(count = n(), .groups = 'drop') |>
   mutate(percentage = count / sum(count) * 100) |>
-  mutate(label = paste0(count, " (", round(percentage, 1), "%)"))
+  mutate(label = paste0(count, " (", round(percentage, 0), "%)"))
 ```
 
 ## Figures
 
-### Summary results - V1: main and first sensitivity analysis
+### Summary results - main and first sensitivity analysis
 
 ```{r message = FALSE, warning = FALSE}
 
@@ -322,7 +335,7 @@ summary_data_main <- discrepancy_data |>
   summarise(count = n(), .groups = 'drop') |>
   group_by(registry2) |>
   mutate(percent = count / sum(count) * 100) |>
-  mutate(label = paste0(round(percent, 1), "% (n = ", count, ")"))  
+  mutate(label = paste0(round(percent, 0), "% (n = ", count, ")"))  
 
 #prepare data sensitivity analysis
 summary_data_sens <- discrepancy_data |>
@@ -338,7 +351,7 @@ summary_data_sens <- discrepancy_data |>
   summarise(count = n(), .groups = 'drop') |>
   group_by(registry2) |>
   mutate(percent = count / sum(count) * 100) |>
-  mutate(label = paste0(round(percent, 1), "% (n = ", count, ")"))  
+  mutate(label = paste0(round(percent, 0), "% (n = ", count, ")"))  
 
 #create 2-pane plot
 plot1 <- ggplot(data = summary_data_main, aes(x = registry2, y = percent, fill = result_label)) +
@@ -347,7 +360,7 @@ plot1 <- ggplot(data = summary_data_main, aes(x = registry2, y = percent, fill =
             position = position_stack(vjust = 0.5), size = 3.5) +  
   labs(x = "Main analysis", y = "Percentage", fill = "Results") +
   scale_fill_manual(values = c("No results" = "lightgray", 
-                               "Only EUCTR" = "#2066a8", 
+                               "Only EUCTR" = "#2577c5", 
                                "Both" = "#3594cc", 
                                "Only other registry" = "#8cc5e3")) +
   scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) +
@@ -363,10 +376,10 @@ plot2 <- ggplot(data = summary_data_sens, aes(x = registry2, y = percent, fill =
             position = position_stack(vjust = 0.5), size = 3.5) +  
   labs(x = "Sensitivity analysis", y = "Percentage", fill = "Results") +
   scale_fill_manual(values = c("No results" = "lightgray", 
-                               "Only EUCTR" = "#2066a8", 
+                               "Only EUCTR" = "#2577c5", 
                                "Both" = "#3594cc", 
                                "Only other registry" = "#8cc5e3")) +
-  scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) +
+  scale_y_continuous(limits = c(0, 101), breaks = seq(0, 100, by = 10)) +
   scale_x_discrete(labels = c("ClinicalTrials.gov" = "EUCTR-ClinicalTrials.gov", 
                               "DRKS" = "EUCTR-DRKS")) +
   theme_classic() +
@@ -377,7 +390,7 @@ combined_plot_summary <- plot1 + plot2 + plot_layout(ncol = 2)
 print(combined_plot_summary)
 ```
 
-### Summary results - V2: main + first AND second sensitivity analysis
+### Summary results - main, first sensitivity and second sensitivity analysis
 
 ```{r message = FALSE, warning = FALSE}
 
@@ -395,7 +408,7 @@ main_data_summary <- discrepancy_data |>
   summarise(count = n(), .groups = 'drop') |>
   group_by(registry2) |>
   mutate(percent = count / sum(count) * 100) |>
-  mutate(label = paste0(round(percent, 1), "% (n = ", count, ")"))  
+  mutate(label = paste0(round(percent, 0), "% (n = ", count, ")"))  
 
 #prepare data sensitivity analysis
 sensitivity_data_summary <- discrepancy_data |>
@@ -411,7 +424,7 @@ sensitivity_data_summary <- discrepancy_data |>
   summarise(count = n(), .groups = 'drop') |>
   group_by(registry2) |>
   mutate(percent = count / sum(count) * 100) |>
-  mutate(label = paste0(round(percent, 1), "% (n = ", count, ")")) 
+  mutate(label = paste0(round(percent, 0), "% (n = ", count, ")")) 
 
 #prepare data sensitivity v2 analysis
 sensitivity_data_summary_v2 <- discrepancy_data |>
@@ -427,21 +440,21 @@ sensitivity_data_summary_v2 <- discrepancy_data |>
   summarise(count = n(), .groups = 'drop') |>
   group_by(registry2) |>
   mutate(percent = count / sum(count) * 100) |>
-  mutate(label = paste0(round(percent, 1), "% (n = ", count, ")"))
+  mutate(label = paste0(round(percent, 0), "% (n = ", count, ")"))
 
 #create 2-pane plot 
 
 plot3 <- ggplot(
   data = bind_rows(
     main_data_summary %>% filter(registry2 == "ClinicalTrials.gov") %>% mutate(analysis_type = "Main"),
-    sensitivity_data_summary %>% filter(registry2 == "ClinicalTrials.gov") %>% mutate(analysis_type = "Sensitivity"),
-    sensitivity_data_summary_v2 %>% filter(registry2 == "ClinicalTrials.gov") %>% mutate(analysis_type = "Sensitivity V2")),
+    sensitivity_data_summary %>% filter(registry2 == "ClinicalTrials.gov") %>% mutate(analysis_type = "Sensitivity 1"),
+    sensitivity_data_summary_v2 %>% filter(registry2 == "ClinicalTrials.gov") %>% mutate(analysis_type = "Sensitivity 2")),
   aes(x = analysis_type, y = percent, fill = result_label)) +
   geom_bar(stat = "identity", position = "stack") +
   geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 3.5) +
   labs(x = "EUCTR - ClinicalTrials.gov", y = "Percentage", fill = "Results") +
   scale_fill_manual(values = c("No results" = "lightgray", 
-                               "Only EUCTR" = "#2066a8", 
+                               "Only EUCTR" = "#2577c5", 
                                "Both" = "#3594cc", 
                                "Only other registry" = "#8cc5e3")) +
   scale_y_continuous(limits = c(0, 101), breaks = seq(0, 100, by = 10)) +
@@ -452,14 +465,14 @@ plot3 <- ggplot(
 plot4 <- ggplot(
   data = bind_rows(
     main_data_summary %>% filter(registry2 == "DRKS") %>% mutate(analysis_type = "Main"),
-    sensitivity_data_summary %>% filter(registry2 == "DRKS") %>% mutate(analysis_type = "Sensitivity"),
+    sensitivity_data_summary %>% filter(registry2 == "DRKS") %>% mutate(analysis_type = "Sensitivity 1"),
     sensitivity_data_summary_v2 %>% filter(registry2 == "DRKS") %>% mutate(analysis_type = "Sensitivity V2")),
   aes(x = analysis_type, y = percent, fill = result_label)) +
   geom_bar(stat = "identity", position = "stack") +
   geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 3.5) +
   labs(x = "EUCTR - DRKS", y = "Percentage", fill = "Results") +
   scale_fill_manual(values = c("No results" = "lightgray", 
-                               "Only EUCTR" = "#2066a8", 
+                               "Only EUCTR" = "#2577c5", 
                                "Both" = "#3594cc", 
                                "Only other registry" = "#8cc5e3")) +
   scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) +
@@ -486,7 +499,7 @@ discrepancy_data |>
   mutate(percentage = round(n / sum(n) * 100, 0))
 ```
 
-Since there is no missing data on either registry, the analysis was done on 233 pairs of true cross-registered pairs.
+Since there is no missing data on either registry, the analysis was done on 232 pairs of true cross-registered pairs.
 
 ```{r message = FALSE, warning = FALSE}
 
@@ -495,7 +508,7 @@ discrepancy_data |>
   mutate(percentage = round(n / sum(n) * 100, 0))
 ```
 
-Of those 233 pairs, 218 were EUCTR-ClinicalTrials.gov and 15 were EUCTR-DRKS
+Of those 232 pairs, 217 were EUCTR-ClinicalTrials.gov and 15 were EUCTR-DRKS
 
 ```{r message = FALSE, warning = FALSE}
 
@@ -533,7 +546,7 @@ discrepancy_data |>
   count(is.na(completion_month_year_reg2))
 ```
 
-For registry1 (EUCTR), there were 192 pairs that were confirmed cross-registrations and no missing data on completion-date. For registry 2 (ClinicalTrials.gov or DRKS), the 200 observations had data. Therefore, the analysis was conducted in 192 pairs.
+For registry1 (EUCTR), there were 191 pairs that were confirmed cross-registrations and no missing data on `completion_month_year_reg1`. For registry 2 (ClinicalTrials.gov or DRKS), all observations had data for `completion_month_year_reg2`. Therefore, the analysis was conducted in 191 pairs.
 
 ```{r message = FALSE, warning = FALSE}
 
@@ -548,7 +561,7 @@ discrepancy_data |>
   count(is.na(completion_month_year_reg1))
 ```
 
-Of those 210 pairs, 178 were EUCTR-ClinicalTrials.gov and 14 were EUCTR-DRKS.
+Of those 191 pairs, 177 were EUCTR-ClinicalTrials.gov and 14 were EUCTR-DRKS.
 
 #### Percentages
 
@@ -579,38 +592,51 @@ discrepancy_data |>
 
 ```{r message = FALSE, warning = FALSE}
 
-#for all cases
+# CALCULATION FOR ALL CASES
 discrepancy_data |>
-  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
-  filter(!is.na(completion_month_year_reg1)) |>
+  # Filter the data
+  filter(
+    overall_recruitment_status_reg1 == "Completed",
+    overall_recruitment_status_reg2 == "Completed",
+    !is.na(completion_month_year_reg1)
+  ) |>
+  # Calculate the month difference
   mutate(
-    completion_month_year_reg1 = ymd(paste0(completion_month_year_reg1, "-01")),
-    completion_month_year_reg2 = ymd(paste0(completion_month_year_reg2, "-01")),
-    month_difference = abs(interval(completion_month_year_reg1, 
-                                    completion_month_year_reg2) / months(1))
-    ) |>
-  summarize(min_difference = min(month_difference, na.rm = TRUE),  
-            max_difference = max(month_difference, na.rm = TRUE),
-            median_difference = median(month_difference, na.rm = TRUE),  
-            mean_difference = mean(month_difference, na.rm = TRUE),      
-            sd_difference = sd(month_difference, na.rm = TRUE))
+    month_diff = abs(interval(completion_month_year_reg1, completion_month_year_reg2) %/% months(1))
+  ) |>
+  # Summarize descriptive statistics
+  summarise(
+    mean_month_diff = mean(month_diff),
+    median_month_diff = median(month_diff),
+    sd_month_diff = sd(month_diff),
+    min_month_diff = min(month_diff),
+    max_month_diff = max(month_diff),
+    n = n()
+  )
 
-#for only discrepant cases
+# CALCULATION FOR ONLY DISCREPANT DATES 
+
 discrepancy_data |>
-  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
-  filter(completion_month_year_reg1 != completion_month_year_reg2) |>
-  filter(!is.na(completion_month_year_reg1)) |>
+  # Filter the data
+  filter(
+    overall_recruitment_status_reg1 == "Completed",
+    overall_recruitment_status_reg2 == "Completed",
+    !is.na(completion_month_year_reg1),
+    completion_month_year_reg1 != completion_month_year_reg2
+  ) |>
+  # Calculate the month difference
   mutate(
-    completion_month_year_reg1 = ymd(paste0(completion_month_year_reg1, "-01")),
-    completion_month_year_reg2 = ymd(paste0(completion_month_year_reg2, "-01")),
-    month_difference = abs(interval(completion_month_year_reg1, 
-                                    completion_month_year_reg2) / months(1))
-    ) |>
-  summarize(min_difference = min(month_difference, na.rm = TRUE),  
-            max_difference = max(month_difference, na.rm = TRUE),
-            median_difference = median(month_difference, na.rm = TRUE),  
-            mean_difference = mean(month_difference, na.rm = TRUE),      
-            sd_difference = sd(month_difference, na.rm = TRUE))
+    month_diff = abs(interval(completion_month_year_reg1, completion_month_year_reg2) %/% months(1))
+  ) |>
+  # Summarize descriptive statistics
+  summarise(
+    mean_month_diff = mean(month_diff),
+    median_month_diff = median(month_diff),
+    sd_month_diff = sd(month_diff),
+    min_month_diff = min(month_diff),
+    max_month_diff = max(month_diff),
+    n = n()
+  )
 ```
 
 #### Percentage of cases where EUCTR completion date was before/after/same
@@ -658,7 +684,7 @@ discrepancy_data |>
 
 ### Sensitivity analysis
 
-This is a sensitivity analysis of completion date, based on the one that was present in the German member state protocol instead of the result section.
+This is a sensitivity analysis of completion date, where completion dates in the EUCTR were solely taken from the EU member state protocol (completion dates on EUCTR Results pages were disregarded)."
 
 #### Count of observations included in the analysis
 
@@ -672,6 +698,8 @@ discrepancy_data |>
   filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
   count(is.na(completion_month_year_reg2))
 ```
+
+For registry1 (EUCTR), there were 172 pairs that were confirmed cross-registrations and no missing data on `completion_month_year_protocol`. For registry 2 (ClinicalTrials.gov or DRKS), all observations had data. Therefore, the analysis was conducted in 172 pairs.
 
 #### Percentages
 
@@ -702,38 +730,51 @@ discrepancy_data |>
 
 ```{r message = FALSE, warning = FALSE}
 
-#for all cases
+# CALCULATION FOR ALL CASES
 discrepancy_data |>
-  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
-  filter(!is.na(completion_month_year_protocol)) |>
+  # Filter the data
+  filter(
+    overall_recruitment_status_reg1 == "Completed",
+    overall_recruitment_status_reg2 == "Completed",
+    !is.na(completion_month_year_protocol)
+  ) |>
+  # Calculate the month difference
   mutate(
-    completion_month_year_protocol = ymd(paste0(completion_month_year_protocol, "-01")),
-    completion_month_year_reg2 = ymd(paste0(completion_month_year_reg2, "-01")),
-    month_difference = abs(interval(completion_month_year_protocol, 
-                                    completion_month_year_reg2) / months(1))
-    ) |>
-  summarize(min_difference = min(month_difference, na.rm = TRUE),  
-            max_difference = max(month_difference, na.rm = TRUE),
-            median_difference = median(month_difference, na.rm = TRUE),  
-            mean_difference = mean(month_difference, na.rm = TRUE),      
-            sd_difference = sd(month_difference, na.rm = TRUE))
+    month_diff = abs(interval(completion_month_year_protocol, completion_month_year_reg2) %/% months(1))
+  ) |>
+  # Summarize descriptive statistics
+  summarise(
+    mean_month_diff = mean(month_diff),
+    median_month_diff = median(month_diff),
+    sd_month_diff = sd(month_diff),
+    min_month_diff = min(month_diff),
+    max_month_diff = max(month_diff),
+    n = n()
+  )
 
-#for only discrepant cases
+# CALCULATION FOR ONLY DISCREPANT DATES 
+
 discrepancy_data |>
-  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
-  filter(completion_month_year_protocol != completion_month_year_reg2) |>
-  filter(!is.na(completion_month_year_protocol)) |>
+  # Filter the data
+  filter(
+    overall_recruitment_status_reg1 == "Completed",
+    overall_recruitment_status_reg2 == "Completed",
+    !is.na(completion_month_year_protocol),
+    completion_month_year_protocol != completion_month_year_reg2
+  ) |>
+  # Calculate the month difference
   mutate(
-    completion_month_year_protocol = ymd(paste0(completion_month_year_protocol, "-01")),
-    completion_month_year_reg2 = ymd(paste0(completion_month_year_reg2, "-01")),
-    month_difference = abs(interval(completion_month_year_protocol, 
-                                    completion_month_year_reg2) / months(1))
-    ) |>
-  summarize(min_difference = min(month_difference, na.rm = TRUE),  
-            max_difference = max(month_difference, na.rm = TRUE),
-            median_difference = median(month_difference, na.rm = TRUE),  
-            mean_difference = mean(month_difference, na.rm = TRUE),      
-            sd_difference = sd(month_difference, na.rm = TRUE))
+    month_diff = abs(interval(completion_month_year_protocol, completion_month_year_reg2) %/% months(1))
+  ) |>
+  # Summarize descriptive statistics
+  summarise(
+    mean_month_diff = mean(month_diff),
+    median_month_diff = median(month_diff),
+    sd_month_diff = sd(month_diff),
+    min_month_diff = min(month_diff),
+    max_month_diff = max(month_diff),
+    n = n()
+  )
 ```
 
 #### Percentage of cases where EUCTR completion date was before/after/same
@@ -783,8 +824,6 @@ discrepancy_data |>
 
 ### Main analysis plot
 
-#### **Overall plot (without differentiating registry 2)**
-
 ```{r message = FALSE, warning = FALSE}
 
 overall_completion_plot <- discrepancy_data |>
@@ -831,8 +870,6 @@ print(overall_completion_plot)
 ```
 
 ### Sensitivity analysis plot
-
-#### **Overall plot (without differentiating registry 2)**
 
 ```{r message = FALSE, warning = FALSE}
 
