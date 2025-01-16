@@ -197,17 +197,17 @@ discrepancy_data |>
 
 For the first sensitivity analysis, summary results were considered as reported (i.e. `has_summary_results_reg1_sensitivity == TRUE` or `has_summary_results_reg2_sensitivity == TRUE`) if any of the following were available in the summary results section:
 
--   Structured tabular result
+-   Structured tabular result (EUCTR and ClinicalTrials.gov only)
 
--   Tabular result from another registry
+-   Tabular result from another registry (EUCTR and DRKS only)
 
--   Link to a file that reported results (such as synopsis, study reports, etc.)
+-   Link to a file that reported results (EUCTR and DRKS only)
 
--   Link to a termination statement
+-   Link to a termination statement (EUCTR and DRKS only)
 
--   Link to a publication citation
+-   Link to a publication citation (EUCTR and DRKS only)
 
--   Link to publication or abstract
+-   Link to publication or abstract (EUCTR and DRKS only)
 
 In contrast to DRKS and EUCTR (which allow different entries in the results reporting field), ClinicalTrials.gov does not allow other formats to be uploaded in the "Results Overview" section of the registration. Thus, for ClinicalTrials.gov, the main and first sensitivity analysis are the same. Only in the second sensitivity analysis do we consider publication links listed in the "Publications" section in ClinicalTrials.gov
 
@@ -269,17 +269,17 @@ This analysis extends the first sensitivity analysis to also include any publica
 
 Summary results were considered as reported (i.e. `has_summary_results_reg1_sensitivity_V2 == TRUE` or `has_summary_results_reg2_sensitivity_V2 == TRUE`) if any of the following were available in the registry:
 
--   Structured tabular result
+-   Structured tabular result (EUCTR and ClinicalTrials.gov only)
 
--   Tabular result from another registry
+-   Tabular result from another registry (EUCTR and DRKS only)
 
--   Link to a file that reported results (such as synopsis, study reports, etc.)
+-   Link to a file that reported results (EUCTR and DRKS only)
 
--   Link to a termination statement
+-   Link to a termination statement (EUCTR and DRKS only)
 
--   Link to a publication citation
+-   Link to a publication citation (EUCTR and DRKS only)
 
--   Link to publication or abstract
+-   Link to publication or abstract (EUCTR and DRKS only)
 
 -   Publication links listed in the "Publications" section in ClinicalTrials.gov
 
