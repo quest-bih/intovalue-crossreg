@@ -19,7 +19,7 @@ intovalue <- read_csv(url)
 
 intovalue <- intovalue |>
   select(id, completion_year)
-  
+
 # Add flag to intovalue to identify potential crossregs
 # Add a new column to `intovalue` checking if `id` is in `trn1` or `trn2` of `trn_filtered`
 intovalue <- intovalue |> 
@@ -77,7 +77,6 @@ ggplot(summary_by_year, aes(x = completion_year, y = count, fill = crossreg_stat
     y = "IntoValue trials (DRKS or ClinicalTrials.gov)",
     fill = "Potential EUCTR cross-registration"
   ) +
-  theme_minimal()
-
-
-
+  theme_minimal(
+    base_size = 14
+  )

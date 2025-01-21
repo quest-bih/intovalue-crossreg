@@ -117,6 +117,7 @@ manual_screening_plot <- manual_screening_upset |>
   ggplot(aes(x = links, fill = is_true_crossreg)) + 
   geom_bar(position = "stack") + 
   geom_text(
+    size = 7,
     stat = "count", 
     aes(label = after_stat(count), group = is_true_crossreg), 
     position = position_stack(vjust = 0.5) # Place labels in the middle of each section
@@ -129,7 +130,10 @@ manual_screening_plot <- manual_screening_upset |>
   theme(
     legend.background = element_rect(color = "transparent", fill = "transparent"), 
     legend.position = c(.85, .9), 
-    axis.title.y = element_text(size = 11)
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16)
   )
 
 
@@ -170,6 +174,7 @@ pub_linking_combinations_false_positive <- upset_manual_screening_false_positive
   ggplot(aes(x = links, fill = is_true_crossreg)) + 
   geom_bar(position = "stack") + 
   geom_text(
+    size = 5,
     stat = "count", 
     aes(label = after_stat(count), group = is_true_crossreg), 
     position = position_stack(vjust = 0.5) # Place labels in the middle of each section
@@ -182,7 +187,10 @@ pub_linking_combinations_false_positive <- upset_manual_screening_false_positive
   theme(
     legend.background = element_rect(color = "transparent", fill = "transparent"), 
     legend.position = c(.85, .9),
-    axis.title.y = element_text(size = 11)
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16)
   )
 
 ################################################################################
@@ -246,9 +254,9 @@ false_crossreg <- false_crossreg_standardized |>
 #  ylab("Proportion of pairs (%)") +  
 #  xlab("Linking combinations") +
 #  theme(
-   # legend.background = element_rect(color = "transparent", fill = "transparent"),
-  #  legend.position = c(.85, .9),
- #   axis.title.y = element_text(size = 11)
+# legend.background = element_rect(color = "transparent", fill = "transparent"),
+#  legend.position = c(.85, .9),
+#   axis.title.y = element_text(size = 11)
 #  )
 
 

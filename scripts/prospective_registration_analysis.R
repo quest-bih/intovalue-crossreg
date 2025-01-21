@@ -91,7 +91,7 @@ ggplot(summary, aes(x = registry, y = proportion * 100, fill = has_prospective_r
     aes(label = sprintf("%.1f%% (%d)", round(proportion * 100, 1), count)), # Percentage with count
     position = position_dodge(width = 0.9),
     vjust = -0.5,
-    size = 3.5
+    size = 5
   ) +
   labs(
     x = "Registry",
@@ -104,5 +104,7 @@ ggplot(summary, aes(x = registry, y = proportion * 100, fill = has_prospective_r
     values = c("TRUE" = "steelblue", "FALSE" = "grey"),
     labels = c("TRUE" = "Registered prospectively", "FALSE" = "Registered retrospectively")
   ) +
-  theme_minimal()
+  theme_minimal(
+    base_size = 16
+  )
 
