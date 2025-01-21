@@ -127,7 +127,7 @@ ct_euctr_title_match_percentage <- (ct_euctr_title_match_count/ nrow(ct_euctr_re
 ct_euctr_venn <- list(
   "CT Number mentioned in EUCTR" = ct_id_in_euctr$standardized_pair,
   "EUCTR Number mentioned in CT" = euctr_id_in_ctgov$standardized_pair #,
-#  "Matched on title" = ct_euctr_title_matched$standardized_pair
+  #  "Matched on title" = ct_euctr_title_matched$standardized_pair
 )
 
 base_ct_euctr_venn <- ggvenn(
@@ -135,17 +135,18 @@ base_ct_euctr_venn <- ggvenn(
   fill_color = c("#0073C2FF", "#EFC000FF"), # If you need to include title matching in the Venn, you will need to specify a 3rd color and comment out auto_scale = TRUE
   stroke_size = 0.5,
   auto_scale = TRUE,
+  text_size = 6,
   set_name_size = 0 # Turn off default labels for custom handling
 )
 
 # Add custom labels with text boxes
 base_ct_euctr_venn +
-  annotate("label", x = -1.2, y = 1.1, label = "CT Number mentioned in EUCTR",
-           fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) +
-  annotate("label", x = 1.2, y = 1.1, label = "EUCTR Number mentioned in CT",
-           fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) # +
- # annotate("label", x = 0, y = -1.1, label = "Trials matched on title",
-       #    fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
+  annotate("label", x = -1.1, y = 0.75, label = "CT Number mentioned in EUCTR",
+           fill = "white", color = "black", size = 3.5, label.padding = unit(0.2, "lines")) +
+  annotate("label", x = 1.2, y = 0.75, label = "EUCTR Number mentioned in CT",
+           fill = "white", color = "black", size = 3.5, label.padding = unit(0.2, "lines")) # +
+# annotate("label", x = 0, y = -1.1, label = "Trials matched on title",
+#    fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
 
 
 # Filter for potential cross-registrations between DRKS and EUCTR linked by a unidirectional or bidirectional link in the registry
@@ -178,25 +179,26 @@ drks_euctr_title_match_percentage <- (drks_euctr_title_match_count/ nrow(drks_eu
 drks_euctr_venn <- list(
   "DRKS Number mentioned in EUCTR" = drks_id_in_euctr$standardized_pair,
   "EUCTR Number mentioned in DRKS" = euctr_id_in_drks$standardized_pair #,
-# "Trials matched on title" = drks_euctr_title_matched$standardized_pair
-  )
+  # "Trials matched on title" = drks_euctr_title_matched$standardized_pair
+)
 
 base_drks_euctr_venn <- ggvenn(
   drks_euctr_venn,
   fill_color = c("#0073C2FF", "#EFC000FF"), # If you need to include title matching in the Venn, you will need to specify a 3rd color and comment out auto_scale = TRUE
   stroke_size = 0.5,
   auto_scale = TRUE,
+  text_size = 4,
   set_name_size = 0 # Turn off default labels for custom handling
 )
 
 # Add custom labels with text boxes
 base_drks_euctr_venn +
-  annotate("label", x = -1.1, y = 0, label = "DRKS Number mentioned in EUCTR",
-           fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) +
-  annotate("label", x = 1.2, y = 1, label = "EUCTR Number mentioned in DRKS",
-           fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines")) # +
- # annotate("label", x = 0, y = -1.1, label = "Trials matched on title",
-    #       fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
+  annotate("label", x = -0.5, y = 0.25, label = "DRKS Number mentioned in EUCTR",
+           fill = "white", color = "black", size = 4, label.padding = unit(0.2, "lines")) +
+  annotate("label", x = 1.1, y = 0.75, label = "EUCTR Number mentioned in DRKS",
+           fill = "white", color = "black", size = 4, label.padding = unit(0.2, "lines")) # +
+# annotate("label", x = 0, y = -1.1, label = "Trials matched on title",
+#       fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
 
 #########################################################################################################################
 # Prepare data for upset plots
@@ -241,23 +243,31 @@ trn_combos_ctgov <- trn_combos |>
 overall_crossreg_combinations <- trn_combos |>
   ggplot(aes(x=links)) +
   geom_bar() +
-  ggtitle("Overall Combinations") +
-  geom_text(stat='count', aes(label=after_stat(count)), vjust=-1) +
+  geom_text(stat='count', 
+            size = 5,
+            aes(label=after_stat(count)), 
+            vjust=-1) +
   scale_x_upset(n_intersections = 20) +
   ylab("Number of pairs") +
   xlab("Linking combinations") +
   theme(
     legend.background = element_rect(color = "transparent", fill = "transparent"),
     legend.position.inside = c(.85, .9),
-    axis.title.y = element_text(size = 11)
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16)
   )
 
 # Upset plot showing all TRN pairs as proportions
 overall_crossreg_combinations_proportions <- trn_combos |>
   ggplot(aes(x = links)) +
   geom_bar(aes(y = after_stat(count / nrow(trn_combos) * 100))) +  # Set y as proportion for correct scaling
-  ggtitle("Overall Combinations Proportions") +
-  geom_text(stat = 'count', aes(y = after_stat(count / nrow(trn_combos) * 100), label = sprintf("%.1f%%", after_stat(count / nrow(trn_combos) * 100))), vjust = -1) + # Display as percentages
+  geom_text(stat = 'count', 
+            size = 5,
+            aes(y = after_stat(count / nrow(trn_combos) * 100), 
+                label = sprintf("%.1f%%", after_stat(count / nrow(trn_combos) * 100))), 
+            vjust = -1) + # Display as percentages
   scale_x_upset(n_intersections = 20) +
   scale_y_continuous(limits = c(0, 30), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
   ylab("Proportion of pairs (%)") +  
@@ -265,7 +275,10 @@ overall_crossreg_combinations_proportions <- trn_combos |>
   theme(
     legend.background = element_rect(color = "transparent", fill = "transparent"),
     legend.position = c(.85, .9),
-    axis.title.y = element_text(size = 11)
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16)
   )
 
 # Upset plot showing all TRN pairs in analysis set, divided by registry (not super readable yet, too much text)
@@ -294,24 +307,32 @@ registry_divided_combinations <- trn_combos |>
 # Upset plot of TRN pairs between DRKS and EUCTR
 drks_crossreg_combinations <- trn_combos_drks |>
   ggplot(aes(x=links)) +
-  ggtitle("DRKS Combinations") +
   geom_bar() +
-  geom_text(stat='count', aes(label=after_stat(count)), vjust=-1) +
+  geom_text(stat='count', 
+            size = 5,
+            aes(label=after_stat(count)), 
+            vjust=-1) +
   scale_x_upset(n_intersections = 20) +
   ylab("Number of pairs") +
   xlab("Linking combinations") +
   theme(
     legend.background = element_rect(color = "transparent", fill = "transparent"),
     legend.position.inside = c(.85, .9),
-    axis.title.y = element_text(size = 11)
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16)
   )
 
 #  Upset plot of TRN pairs between DRKS and EUCTR (Proportions instead of counts)
 drks_crossreg_combinations_proportions <- trn_combos_drks |>
   ggplot(aes(x = links)) +
   geom_bar(aes(y = after_stat(count / nrow(trn_combos_drks) * 100))) +  # Set y as proportion for correct scaling
-  ggtitle("DRKS Combinations Proportions") +
-  geom_text(stat = 'count', aes(y = after_stat(count / nrow(trn_combos_drks) * 100), label = sprintf("%.1f%%", after_stat(count / nrow(trn_combos_drks) * 100))), vjust = -1) + # Display as percentages
+  geom_text(stat = 'count',
+            size = 5,
+            aes(y = after_stat(count / nrow(trn_combos_drks) * 100), 
+                label = sprintf("%.1f%%", after_stat(count / nrow(trn_combos_drks) * 100))), 
+            vjust = -1) + # Display as percentages
   scale_x_upset(n_intersections = 20) +
   scale_y_continuous(limits = c(0, 50), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
   ylab("Proportion of pairs (%)") +  
@@ -319,30 +340,41 @@ drks_crossreg_combinations_proportions <- trn_combos_drks |>
   theme(
     legend.background = element_rect(color = "transparent", fill = "transparent"),
     legend.position = c(.85, .9),
-    axis.title.y = element_text(size = 11)
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16)
   ) 
 
 # Upset plot of TRN pairs between CTgov and EUCTR
 ctgov_crossreg_combinations <- trn_combos_ctgov |>
   ggplot(aes(x=links)) +
   geom_bar() +
-  ggtitle("ClinicalTrials.gov Combinations") +
-  geom_text(stat='count', aes(label=after_stat(count)), vjust=-1) +
+  geom_text(stat='count', 
+            size = 5,
+            aes(label=after_stat(count)), 
+            vjust=-1) +
   scale_x_upset(n_intersections = 20) +
   ylab("Number of pairs") +
   xlab("Linking combinations") +
   theme(
     legend.background = element_rect(color = "transparent", fill = "transparent"),
     legend.position.inside = c(.85, .9),
-    axis.title.y = element_text(size = 11)
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16)
   )
 
 # Upset plot of TRN pairs between CT and EUCTR (Proportions instead of counts)
 ctgov_crossreg_combinations_proportions <- trn_combos_ctgov |>
   ggplot(aes(x = links)) +
   geom_bar(aes(y = after_stat(count / nrow(trn_combos_ctgov) * 100))) +  # Set y as proportion for correct scaling
-  ggtitle("ClinicalTrials.gov Combinations Proportions") +
-  geom_text(stat = 'count', aes(y = after_stat(count / nrow(trn_combos_ctgov) * 100), label = sprintf("%.1f%%", after_stat(count / nrow(trn_combos_ctgov) * 100))), vjust = -1) + # Display as percentages
+  geom_text(stat = 'count', 
+            size = 4.5,
+            aes(y = after_stat(count / nrow(trn_combos_ctgov) * 100), 
+                label = sprintf("%.1f%%", after_stat(count / nrow(trn_combos_ctgov) * 100))), 
+            vjust = -1) + # Display as percentages
   scale_x_upset(n_intersections = 20) +
   scale_y_continuous(limits = c(0, 40), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
   ylab("Proportion of pairs (%)") +  
@@ -350,7 +382,10 @@ ctgov_crossreg_combinations_proportions <- trn_combos_ctgov |>
   theme(
     legend.background = element_rect(color = "transparent", fill = "transparent"),
     legend.position = c(.85, .9),
-    axis.title.y = element_text(size = 11)
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16)
   ) 
 
 # # Move y axis label closer to plot
