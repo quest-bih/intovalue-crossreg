@@ -144,9 +144,8 @@ mdr_crossreg_pipeline_overlap_with_information <- potential_crossregs_standardiz
 
 #######################################################################################
 # QUESTION: What kind of TRN pairs did the crossreg pipeline approach miss entirely, which can be identified in the MDR?
-# `potential_crossregs_mdr_highlighted` contains only TRN pairs sorted into Priority 5
 
-# Determine which pairs in `unique_to_ecrin_df` we missed entirely in our crossreg pipeline approach (not in priority 5)
+# Determine which pairs in `unique_to_ecrin_df` we missed entirely in our crossreg pipeline approach, even in the unfiltered potential_crossregs table
 difference <- setdiff(unique_to_ecrin_df$standardized_pair, mdr_crossreg_pipeline_overlap_with_information$standardized_pair)
 
 # Convert `difference` to data frame in order to inspect visually, left_join to larger MDR source table for more information on pairs
