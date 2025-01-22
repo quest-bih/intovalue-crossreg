@@ -6,6 +6,7 @@ library(dplyr)
 library(readr)
 library(stringr)
 library(here)
+library(purrr)
 
 #### LOAD THE MANUAL VALIDATION DATASET ####
 
@@ -24,9 +25,8 @@ data <- read_xlsx(here("data", "manual_validation_raw.xlsx"),
                                 "text"))
 
 # Convert dates to Date format with lubridate()
-data$completion_date_reg1 <- ymd(data$completion_date_reg1)
-data$completion_date_reg2 <- ymd(data$completion_date_reg2)
-data$date_of_check <- ymd(data$date_of_check)
+data <- data |> 
+  mutate(across(c(contains("date"), -contains("type")), ymd))
 
 #### RENAMING COLUMNS ####
 
@@ -41,33 +41,37 @@ data <- data |>
 #### IMPLEMENT CORRECTIONS ####
 
 # Correct date for NCT01510704 from NA to 2012-04-30
-data[data$trn2 == "NCT01510704",]$completion_date_reg2 <- ymd("2012-04-30")
+data <- data |> 
+  rows_update(tribble(~trn2, ~completion_date_reg2,
+                      "NCT01510704", ymd("2012-04-30")), by = "trn2")
 
 # For NCT00351403 - 2006-000358-38, `completion_date_type_reg1` should be changed from “Global” to “Actual”
-data[data$trn1 == "NCT00351403",]$completion_date_type_reg1 <- "Actual"
+data <- data |>
+  rows_update(tribble(~trn1, ~completion_date_type_reg1,
+                      "NCT00351403", "Actual"), by = "trn1")
 
 # For 2012-004555-36 - NCT01797861, information regarding “no DE protocol available” needs to be moved from the population_comment column to the general_comment column
-
-  # Paste text in general_comment column
-data$general_comment[data$trn1 == "2012-004555-36"] <- paste(data$population_comment[data$trn1 == "2012-004555-36"],
-                                                             data$general_comment[data$trn1 == "2012-004555-36"])
-  # Delete text from population_comment column
-data$population_comment[data$trn1 == "2012-004555-36"] <- NA
+data <- data |>
+  mutate(general_comment = case_when(trn1 == "2012-004555-36" ~ paste(population_comment, general_comment),
+                                     .default = general_comment),
+         population_comment = case_when(trn1 == "2012-004555-36" ~ NA_character_,
+                                        .default = population_comment))
 
 # For 2009-014076-22 - NCT01065246, value from general_comment (no DE protocol available) needs to be moved to the correct row: 2012-002699-14 - NCT01883531
-
-  # Paste text in the right row
-data$general_comment[data$trn1 == "2012-002699-14"] <- paste(data$general_comment[data$trn1 == "2009-014076-22"],
-                                                             data$general_comment[data$trn1 == "2012-002699-14"])
-  # Delete comment from general_comment column 
-data$general_comment[data$trn1 == "2009-014076-22"] <- NA
+data <- data |> 
+  rows_update(tribble(~trn1, ~general_comment,
+                      "2012-002699-14", data$general_comment[data$trn1 == "2009-014076-22"],
+                      "2009-014076-22", NA_character_), by = "trn1")
 
 # Correct is_true_crossreg (from TRUE to FALSE) for pair NCT01422512 - 2011-006277-25
+
 # The two trials were considered initially as a true cross-registration due to them matching on almost all aspects.
 # However, upon inspection these TRN are from different trials: 2011-006277-25 was from Seasonal Optaflu trial 2012/13 
 # and NCT01422512 from Seasonal Optaflu trial 2011/12. Therefore, they are not a true cross-registered trial.
 
-data[data$trn1 == "NCT01422512",]$is_true_crossreg <- FALSE
+data <- data |>
+  rows_update(tribble(~trn1, ~is_true_crossreg,
+                      "NCT01422512", FALSE), by = "trn1")
 
 #### REMOVE SUMMARY RESULT COLUMNS ####
 # These columns will be re-generated computationally in a section below.
@@ -86,9 +90,8 @@ data <- data |>
 data <- data |> 
   mutate(
     completion_month_year_reg1 = lubridate::floor_date(completion_date_reg1, unit = "month"),
-    completion_month_year_reg2 = lubridate::floor_date(completion_date_reg2, unit = "month")
-  ) |> 
-  relocate(completion_month_year_reg1, .after = completion_date_reg1) |>
+    completion_month_year_reg2 = lubridate::floor_date(completion_date_reg2, unit = "month"),
+    .after = completion_date_reg1) |> 
   relocate(completion_month_year_reg2, .after = completion_date_reg2)
 
 #### DERIVE OVERALL RECRUITMENT STATUS ####
@@ -104,17 +107,12 @@ data <- data |>
     overall_recruitment_status_reg1 = case_when(
       recruitment_status_reg1 %in% c("Completed", "Prematurely Ended", "Terminated", "Recruiting complete", "Recruiting stopped") ~ "Completed",
       recruitment_status_reg1 %in% c("Ongoing", "Temporarily Halted", "Restarted") ~ "Ongoing",
-      recruitment_status_reg1 %in% c("Unknown status") ~ "Other"
-    )
-  ) |>
-  mutate(
+      recruitment_status_reg1 %in% c("Unknown status") ~ "Other"),
     overall_recruitment_status_reg2 = case_when(
       recruitment_status_reg2 %in% c("Completed", "Prematurely Ended", "Terminated", "Recruiting complete", "Recruiting stopped") ~ "Completed",
       recruitment_status_reg2 %in% c("Ongoing", "Temporarily Halted", "Restarted") ~ "Ongoing",
-      recruitment_status_reg2 %in% c("Unknown status") ~ "Other"
-    )
-  ) |> 
-  relocate(overall_recruitment_status_reg1, .after = recruitment_status_reg1) |>
+      recruitment_status_reg2 %in% c("Unknown status") ~ "Other"),
+  .after = recruitment_status_reg1) |> 
   relocate(overall_recruitment_status_reg2, .after = recruitment_status_reg2)
 
 # Note: in the DRKS registry, "Recruiting complete" can be followed by either "Recruitment complete, study complete" or "Recruiting complete, study continuing".
@@ -167,11 +165,12 @@ data_transformed <- drks_ctgov_data |>
 
 #CREATE FUNCTION FOR QUALITY CHECK
 compare_columns <- function(data1, col1, data2, col2) {
-  if (setequal(data1[[col1]], data2[[col2]])) {
-    message(sprintf("Columns %s and %s contain the same values", col1, col2))
-  } else {
-    message(sprintf("Columns %s and %s do NOT contain the same values", col1, col2))
+  comparison <- all.equal(data1[[col1]], data2[[col2]])
+  if (comparison != TRUE) {
+    comparison = paste(sprintf("Columns %s and %s are mismatched:", col1, col2), comparison)
+    message(comparison)
   }
+  
 }
 
 #APPLYING FUNCTION
@@ -186,10 +185,10 @@ column_pairs <- list(
   c("overall_recruitment_status_reg1", "overall_recruitment_status_reg2"))
 
 # Perform comparisons
-for (pair in column_pairs) {
-  compare_columns(data_transformed, pair[1], drks_ctgov_data, pair[2])
-  compare_columns(data_transformed, pair[2], drks_ctgov_data, pair[1])
-}
+walk(column_pairs, \(x) compare_columns(data_transformed, x[1], drks_ctgov_data, x[2])) # This should give no output (columns were correctly flipped)
+walk(column_pairs, \(x) compare_columns(data_transformed, x[1], drks_ctgov_data, x[1])) # This shows messages with the discrepancies between the older version
+                                                                                        # (DRKS/ClinicalTrials.gov are in registry1) and the newest version 
+                                                                                        # (DRKS/ClinicalTrials.gov can only be in registry2).
 
 #### RE-JOINING DATASET ####
 
@@ -198,14 +197,13 @@ joined_data <- bind_rows(euctr_data, data_transformed)
 #### CREATE COLUMNS FOR SUMMARY RESULTS ANALYSES ####
 
 # Derive booleans for results reporting
-sumres <- read_xlsx(here("data", "sumres.xlsx"),
+
+sumres <- read_xlsx(here("data", "sumres.xlsx"),                         # Load dataset with summary results data
                     col_types = c("text", "text", "text", "text",
                                   "logical", "text", "text", "logical",
                                   "logical", "logical", "text", "text",
-                                  "text", "date"))
-
-# Convert dates to Date format with lubridate()
-sumres$date_of_check_sumres <- ymd(sumres$date_of_check_sumres)
+                                  "text", "date")) |> 
+  mutate(date_of_check_sumres = ymd(date_of_check_sumres))               # Convert dates to Date format with lubridate()
 
 # Correction for DRKS00002070 
 # Initially we set "drks_publication_of_study_results_field" to "non_resolving", as two publication links
@@ -320,12 +318,10 @@ if (length(missing_trn1) == 0) {
 
 # Filter variables and rows of interest from euctr_data
 euctr_data_filtered <- euctr_data |>
-  select(eudract_number_with_country, eudract_number, date_of_the_global_end_of_the_trial) |>
+  transmute(eudract_number_with_country, eudract_number, 
+            date_of_the_global_end_of_the_trial = ymd(date_of_the_global_end_of_the_trial)) |> # Convert to Date format with lubridate()
   filter(eudract_number %in% joined_data$trn1, 
          str_detect(eudract_number_with_country, "DE"))
-
-# Convert dates to Date format with lubridate()
-euctr_data_filtered$date_of_the_global_end_of_the_trial <- ymd(euctr_data_filtered$date_of_the_global_end_of_the_trial)
 
 # Add completion date from EUCTR DE protocol (date_of_the_global_end_of_the_trial) to joined_data
 joined_data <- joined_data |>
@@ -344,15 +340,15 @@ discrepancy_data <- joined_data |>
     overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed"
   )
 
-# There are 200 observations in the discrepancy analysis of completion date
-# This includes 28 observations with a missing completion_date_protocol from the EUCTR dump
+# There are 199 observations in the discrepancy analysis of completion date
+# This includes 27 observations with a missing completion_date_protocol from the EUCTR dump
 discrepancy_data |>
   count(is.na(completion_date_protocol))
 
 # Let's explore missing the 28 completion_date_protocol data in the discrepancy data
 #   - 6 of these do not have a DE protocol in the EUCTR dump
 #   - 8 of these do not have a completion date on either the DE protocol or results (see `completion_date_type_reg1` == Missing)
-#   - 14 of these do not have a completion date on the DE protocol
+#   - 13 of these do not have a completion date on the DE protocol
 
 discrepancy_data |>
   select(trn1, 
