@@ -3,7 +3,6 @@
 # Clinical Research Metadata Repository (MDR) from ECRIN (https://ecrin.org/clinical-research-metadata-repository)
 library(tidyverse)
 library(here)
-library(ctregistries)
 library(ggvenn)
 
 # Function to standardize trial pairs, give them unique identifier
@@ -114,14 +113,15 @@ potential_crossregs_standardized <- potential_crossregs |>
 # QUESTION: What TRN pairs did the MDR find that are not present in the filtered results of the crossreg pipeline approach? 
 # Check for overlap between `unique_to_ecrin_df` and `potential_crossregs_filtered_standardized`
 
-unique_to_ecrin_df <- ecrin_standardized[!ecrin_standardized$standardized_pair %in% potential_crossregs_filtered_standardized$standardized_pair, ]
-
+unique_to_ecrin_df <- ecrin_standardized |> 
+  filter(!standardized_pair %in% potential_crossregs_filtered_standardized$standardized_pair)
 
 #######################################################################################
 # Highlight TRN pairs unique to the crossreg pipeline approach in filtered table, `potential_crossregs_filtered_standardized`
 # QUESTION: What kind of trial pairs did our approach find, that could not be identified from MDR data?
 
-unique_to_crossreg_pipeline_df <- potential_crossregs_filtered_standardized[!potential_crossregs_filtered_standardized$standardized_pair %in% ecrin_standardized$standardized_pair, ]
+unique_to_crossreg_pipeline_df <- potential_crossregs_filtered_standardized |>
+  filter(!standardized_pair %in% ecrin_standardized$standardized_pair)
 
 #######################################################################################
 # QUESTION: What kind of trial pairs did both the MDR data and the crossreg pipeline approach capture?
@@ -134,9 +134,10 @@ unique_to_crossreg_pipeline_df <- potential_crossregs_filtered_standardized[!pot
 # Using the full, unfiltered data set gives a clearer picture of the overlap between MDR and crossreg pipeline
 # Add overlap flag so that overlapping TRN pairs can be identified in `potential_crossregs`
 
-mdr_crossreg_pipeline_overlap <- intersect(potential_crossregs_standardized |> select(standardized_pair), 
-                                           ecrin_standardized |> select(standardized_pair)) |> 
-  mutate(overlap = 1)
+mdr_crossreg_pipeline_overlap <- semi_join(potential_crossregs_standardized,
+                                            ecrin_standardized,
+                                            by = "standardized_pair") |> 
+  transmute(standardized_pair, overlap = 1) 
 
 mdr_crossreg_pipeline_overlap_with_information <- potential_crossregs_standardized |>
   left_join(mdr_crossreg_pipeline_overlap, by = "standardized_pair") |>
@@ -145,13 +146,9 @@ mdr_crossreg_pipeline_overlap_with_information <- potential_crossregs_standardiz
 #######################################################################################
 # QUESTION: What kind of TRN pairs did the crossreg pipeline approach miss entirely, which can be identified in the MDR?
 
-# Determine which pairs in `unique_to_ecrin_df` we missed entirely in our crossreg pipeline approach, even in the unfiltered potential_crossregs table
-difference <- setdiff(unique_to_ecrin_df$standardized_pair, mdr_crossreg_pipeline_overlap_with_information$standardized_pair)
-
-# Convert `difference` to data frame in order to inspect visually, left_join to larger MDR source table for more information on pairs
-missed_in_crossreg_pipeline <- as.data.frame(difference) |>
-  rename(standardized_pair = difference) |>
-  left_join(ecrin_standardized, by = "standardized_pair")
+missed_in_crossreg_pipeline <- unique_to_ecrin_df |> 
+  anti_join(mdr_crossreg_pipeline_overlap_with_information, by = "standardized_pair") |> 
+  select(standardized_pair, everything())
 
 #######################################################################################
 # QUESTION: Of the pairs found exclusively from our crossreg pipeline, how many were screened and confirmed as true cross registrations? 
