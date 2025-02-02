@@ -10,9 +10,9 @@ potential_crossreg <- read_rds(here("data", "crossreg_pipeline_output.rds"))
 # Then, we filter for TRNs that have not been removed from the DRKS registry. We also filter for EUCTR TRNs that still resolve in the EUCTR registry. These steps ensure that all remaining TRN pairs can be looked up in their respective registries and screened
 # Finally, we filter out one specific row, in which the TRN '2008-004408-29' is incorrectly marked as a trial that resolves in the EUCTR database.
 trn_filtered <- potential_crossreg |>
-  filter(priority <= 4) |>
-  filter(drks_removed == FALSE & euctr_id_in_euctr == TRUE) |>
-  filter(trn2 != "2008-004408-29")
+  filter(priority <= 4,
+         drks_removed == FALSE & euctr_id_in_euctr == TRUE,
+         trn2 != "2008-004408-29") 
 
 url <- "https://osf.io/mkgux/download"
 intovalue <- read_csv(url)
@@ -35,25 +35,14 @@ intovalue <- intovalue |>
 # However, in the `intovalue` data frame used above, only 614 trials are marked as potential cross-registrations
 # This discrepancy is due to the fact that 11 intovalue TRNs (in ClinicalTrials.gov or DRKS) are connected to more than one EUCTR trial. 
 # Thus, while these connections are captured in trn_filtered, each intovalue TRN is only listed once in the `intovalue` data frame.
-summary_by_year <- intovalue |> 
+
+summary_by_year <- intovalue |>
+  mutate(crossreg_status = if_else(potential_crossreg == 1, TRUE, FALSE)) |> 
+  count(completion_year, crossreg_status, name = "count") |>
   group_by(completion_year) |> 
-  summarise(
-    total_trials = n(),
-    crossreg_trials = sum(potential_crossreg, na.rm = TRUE)
-  ) |> 
   mutate(
-    non_crossreg_trials = total_trials - crossreg_trials,
-    crossreg_percentage = round((crossreg_trials / total_trials) * 100, 1)
-  ) |> 
-  pivot_longer(
-    cols = c(crossreg_trials, non_crossreg_trials),
-    names_to = "crossreg_status",
-    values_to = "count"
-  ) |> 
-  mutate(
-    crossreg_status = recode(crossreg_status,
-                             crossreg_trials = "TRUE",
-                             non_crossreg_trials = "FALSE")
+    total_trials = sum(count),
+    crossreg_percentage = count / total_trials * 100
   )
 
 # Plot the data
@@ -67,7 +56,7 @@ ggplot(summary_by_year, aes(x = completion_year, y = count, fill = crossreg_stat
     position = position_stack(vjust = 0.5), 
     color = "black", size = 4
   ) +
-  scale_fill_manual(values = c("TRUE" = "#f0e442", "FALSE" = "#009e73")) +
+  scale_fill_manual(values = c("FALSE" = "#f0e442", "TRUE" = "#009e73")) +
   scale_x_continuous(
     breaks = 2009:2017,  # Explicitly set discrete years as ticks
     labels = as.character(2009:2017) # Convert breaks to discrete labels
