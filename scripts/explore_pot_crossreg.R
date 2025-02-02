@@ -15,9 +15,9 @@ potential_crossreg <- read_rds(here("data","crossreg_pipeline_output.rds"))
 # Then, we filter for TRNs that have not been removed from the DRKS registry. We also filter for EUCTR TRNs that still resolve in the EUCTR registry. These steps ensure that all remaining TRN pairs can be looked up in their respective registries and screened
 # Finally, we filter out one specific row, in which the TRN '2008-004408-29' is incorrectly marked as a trial that resolves in the EUCTR database.
 trn_filtered <- potential_crossreg |>
-  filter(priority <= 4) |>
-  filter(drks_removed == FALSE & euctr_id_in_euctr == TRUE) |>
-  filter(trn2 != "2008-004408-29")
+  filter(priority <= 4,
+         drks_removed == FALSE & euctr_id_in_euctr == TRUE,
+         trn2 != "2008-004408-29")
 
 # Add registries back in
 trn_filtered <- trn_filtered |>
@@ -112,12 +112,12 @@ ct_euctr_reg_linked <- trn_filtered |>
 # Count how many EUCTR trials mention the corresponding CT number in their registry
 ct_id_in_euctr <- ct_euctr_reg_linked |>
   filter((registry1 == "EudraCT" & trn2inreg1 == TRUE) | (registry2 == "EudraCT" & trn1inreg2 == TRUE)) |>
-  select(standardized_pair)
+  pull(standardized_pair)
 
 # Count how many CT trials mention the corresponding EUCTR number in their registry
 euctr_id_in_ctgov <- ct_euctr_reg_linked |>
   filter((registry1 == "ClinicalTrials.gov" & trn2inreg1 == TRUE) | (registry2 == "ClinicalTrials.gov" & trn1inreg2 == TRUE)) |>
-  select(standardized_pair)
+  pull(standardized_pair)
 
 # Count how many match on title
 ct_euctr_title_match_count <- sum(ct_euctr_reg_linked$is_title_matched)
@@ -125,8 +125,8 @@ ct_euctr_title_match_percentage <- (ct_euctr_title_match_count/ nrow(ct_euctr_re
 
 # Create the CT-EUCTR Venn Diagram
 ct_euctr_venn <- list(
-  "CT Number mentioned in EUCTR" = ct_id_in_euctr$standardized_pair,
-  "EUCTR Number mentioned in CT" = euctr_id_in_ctgov$standardized_pair #,
+  "CT Number mentioned in EUCTR" = ct_id_in_euctr,
+  "EUCTR Number mentioned in CT" = euctr_id_in_ctgov #,
   #  "Matched on title" = ct_euctr_title_matched$standardized_pair
 )
 
@@ -136,7 +136,7 @@ base_ct_euctr_venn <- ggvenn(
   stroke_size = 0.5,
   auto_scale = TRUE,
   text_size = 6,
-  set_name_size = 0 # Turn off default labels for custom handling
+  set_name_size = 0, # Turn off default labels for custom handling
 )
 
 # Add custom labels with text boxes
@@ -163,13 +163,13 @@ drks_euctr_reg_linked <- trn_filtered |>
 # Count how many EUCTR trials mention the corresponding DRKS number in their registry
 drks_id_in_euctr <- drks_euctr_reg_linked |>
   filter((registry1 == "EudraCT" & trn2inreg1 == TRUE) | (registry2 == "EudraCT" & trn1inreg2 == TRUE)) |>
-  select(standardized_pair)
+  pull(standardized_pair)
 
 
 # Count how many DRKS trials mention the corresponding EUCTR number in their registry
 euctr_id_in_drks <- drks_euctr_reg_linked |>
   filter((registry1 == "DRKS" & trn2inreg1 == TRUE) | (registry2 == "DRKS" & trn1inreg2 == TRUE)) |>
-  select(standardized_pair)
+  pull(standardized_pair)
 
 # Count how many match on title
 drks_euctr_title_match_count <- sum(drks_euctr_reg_linked$is_title_matched)
@@ -177,14 +177,14 @@ drks_euctr_title_match_percentage <- (drks_euctr_title_match_count/ nrow(drks_eu
 
 # Create the Venn Diagram
 drks_euctr_venn <- list(
-  "DRKS Number mentioned in EUCTR" = drks_id_in_euctr$standardized_pair,
-  "EUCTR Number mentioned in DRKS" = euctr_id_in_drks$standardized_pair #,
+  "DRKS Number mentioned in EUCTR" = drks_id_in_euctr,
+  "EUCTR Number mentioned in DRKS" = euctr_id_in_drks #,
   # "Trials matched on title" = drks_euctr_title_matched$standardized_pair
 )
 
 base_drks_euctr_venn <- ggvenn(
   drks_euctr_venn,
-  fill_color = c("#0073C2FF", "#EFC000FF"), # If you need to include title matching in the Venn, you will need to specify a 3rd color and comment out auto_scale = TRUE
+  fill_color = c("#D12D2AFF", "#EFC000FF"), # If you need to include title matching in the Venn, you will need to specify a 3rd color and comment out auto_scale = TRUE
   stroke_size = 0.5,
   auto_scale = TRUE,
   text_size = 4,
@@ -421,5 +421,4 @@ duplicates <- trn_filtered |>
 # 2012-002359-40 - 2012-002358-22 (first one is open label, second is double-blind, otherwise the same)
 
 # More in depth description in Paper Outline document
-
 
