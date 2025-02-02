@@ -34,9 +34,9 @@ manual_screening_standardized <- manual_screening |>
 # Then, we filter for TRNs that have not been removed from the DRKS registry. We also filter for EUCTR TRNs that still resolve in the EUCTR registry. These steps ensure that all remaining TRN pairs can be looked up in their respective registries and screened
 # Finally, we filter out one specific row, in which the TRN '2008-004408-29' is incorrectly marked as a trial that resolves in the EUCTR database.
 trn_filtered <- potential_crossreg|>
-  filter(priority <= 4) |>
-  filter(drks_removed == FALSE & euctr_id_in_euctr == TRUE) |>
-  filter(trn2 != "2008-004408-29")
+  filter(priority <= 4,
+         drks_removed == FALSE & euctr_id_in_euctr == TRUE,
+         trn2 != "2008-004408-29")
 
 # Add registries back in
 trn_filtered <- trn_filtered |>
@@ -195,8 +195,8 @@ pub_linking_combinations_false_positive <- upset_manual_screening_false_positive
 
 ################################################################################
 
-# Investigate how the 9 currently identified false positive (manually screened, but not confirmed) cross-registrations are connected 
-# (8/9 false positives are linked only via a publication, 1/9 is connected via a unidirectional registry link)
+# Investigate how the 10 currently identified false positive (manually screened, but not confirmed) cross-registrations are connected 
+# (8/10 false positives are linked only via a publication, 1/10 is connected via a unidirectional registry link, and 1/10 is linked through a title match)
 
 # Filter for false cross-registrations
 false_crossreg_standardized <- manual_screening_standardized |>
@@ -206,9 +206,10 @@ false_crossreg_standardized <- manual_screening_standardized |>
 false_crossreg <- false_crossreg_standardized |>
   left_join(trn_filtered, by = "standardized_pair")
 
-# Visual inspection of table shows that 8/9 are only connected by trn2_in_pub_ft
+# Visual inspection of table shows that 8/10 are only connected by trn2_in_pub_ft
 # In this case, 8 EUCTR numbers were mentioned in the full text of publications associated with 8 IntoValue TRNs
-# The 9th and last false positive cross registration was connected via a unidirectional registry link, in which the IV registry mentions the EUCTR ID
+# The 9th false positive cross registration was connected via a unidirectional registry link, in which the IV registry mentions the EUCTR ID
+# The 10th false positive cross registration was connected via a title match
 
 ################################################################################
 # Upset plot for all trials that were screened and CONFIRMED, across all links (not just publications)
