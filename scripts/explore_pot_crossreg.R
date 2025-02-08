@@ -5,6 +5,7 @@ library(ctregistries)
 library(ggupset)
 library(ggvenn)
 library(gtsummary)
+library(gridExtra)
 
 
 # Read in data ------------------------------------------------------------
@@ -141,9 +142,9 @@ base_ct_euctr_venn <- ggvenn(
 
 # Add custom labels with text boxes
 base_ct_euctr_venn +
-  annotate("label", x = -1.1, y = 0.75, label = "CT Number mentioned in EUCTR",
+  annotate("label", x = -1.0, y = 0.75, label = "ClinicalTrials.gov TRN in EUCTR",
            fill = "white", color = "black", size = 3.5, label.padding = unit(0.2, "lines")) +
-  annotate("label", x = 1.2, y = 0.75, label = "EUCTR Number mentioned in CT",
+  annotate("label", x = 1.2, y = 0.75, label = "EUCTR TRN in ClinicalTrials.gov",
            fill = "white", color = "black", size = 3.5, label.padding = unit(0.2, "lines")) # +
 # annotate("label", x = 0, y = -1.1, label = "Trials matched on title",
 #    fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
@@ -193,12 +194,25 @@ base_drks_euctr_venn <- ggvenn(
 
 # Add custom labels with text boxes
 base_drks_euctr_venn +
-  annotate("label", x = -0.5, y = 0.25, label = "DRKS Number mentioned in EUCTR",
+  annotate("label", x = -0.5, y = 0.25, label = "DRKS TRN in EUCTR",
            fill = "white", color = "black", size = 4, label.padding = unit(0.2, "lines")) +
-  annotate("label", x = 1.1, y = 0.75, label = "EUCTR Number mentioned in DRKS",
+  annotate("label", x = 1.1, y = 0.75, label = "EUCTR TRN in DRKS",
            fill = "white", color = "black", size = 4, label.padding = unit(0.2, "lines")) # +
 # annotate("label", x = 0, y = -1.1, label = "Trials matched on title",
 #       fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
+
+# Arrange two Venn diagrams side by side
+grid.arrange(base_ct_euctr_venn +
+               annotate("label", x = -1.0, y = 0.75, label = "ClinicalTrials.gov TRN in EUCTR",
+                        fill = "white", color = "black", size = 3.5, label.padding = unit(0.2, "lines")) +
+               annotate("label", x = 1.2, y = 0.75, label = "EUCTR TRN in ClinicalTrials.gov",
+                        fill = "white", color = "black", size = 3.5, label.padding = unit(0.2, "lines")),
+             base_drks_euctr_venn +
+               annotate("label", x = -0.5, y = 0.25, label = "DRKS TRN in EUCTR",
+                        fill = "white", color = "black", size = 4, label.padding = unit(0.2, "lines")) +
+               annotate("label", x = 1.1, y = 0.75, label = "EUCTR TRN in DRKS",
+                        fill = "white", color = "black", size = 4, label.padding = unit(0.2, "lines")), 
+             ncol = 2)
 
 #########################################################################################################################
 # Prepare data for upset plots
