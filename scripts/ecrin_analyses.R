@@ -4,6 +4,8 @@
 library(tidyverse)
 library(here)
 library(ggvenn)
+library(ggupset)
+library(ctregistries)
 
 # Function to standardize trial pairs, give them unique identifier
 standardize_pairs <- function(df) {
@@ -123,6 +125,84 @@ unique_to_ecrin_df <- ecrin_standardized |>
 unique_to_crossreg_pipeline_df <- potential_crossregs_filtered_standardized |>
   filter(!standardized_pair %in% ecrin_standardized$standardized_pair)
 
+#######################################################################################
+# Dive deeper into the TRN pairs unique to the crossreg pipeline approach and create an upset plot to visualize the connections
+# QUESTION: Of the TRN pairs only we found, how are they connected?
+
+# Add registry information back in, in case we want to divide analysis by registry
+unique_to_crossreg_pipeline_upset <- unique_to_crossreg_pipeline_df |>
+  rowwise()|>
+  mutate(registry1 = ctregistries::which_registry(trn1),
+         registry2 = ctregistries::which_registry(trn2))
+
+# Edit layout to make table easier for upset package to read
+unique_to_crossreg_pipeline_upset <- unique_to_crossreg_pipeline_upset |>
+  mutate(
+    bidirectional = if_else(trn1inreg2 & trn2inreg1, TRUE, FALSE),
+    is_title_matched = if_else(is.na(is_title_matched), FALSE, is_title_matched),
+    non_euctr_registry = if_else(registry1 == "EudraCT", registry2, registry1) ,
+    unidirectional = if_else((trn1inreg2 | trn2inreg1) & !bidirectional, TRUE, FALSE),
+    # unidirectional = if_else((trn1inreg2 | trn2inreg1), TRUE, FALSE)
+    
+    trn1_in_pub_abs = replace_na(trn1_in_pub_abs, FALSE),
+    trn2_in_pub_abs = replace_na(trn2_in_pub_abs, FALSE),
+    trn_in_pub_abs = trn1_in_pub_abs | trn2_in_pub_abs,
+    
+    trn1_in_pub_si = replace_na(trn1_in_pub_si, FALSE),
+    trn2_in_pub_si = replace_na(trn2_in_pub_si, FALSE),
+    trn_in_pub_si = trn1_in_pub_si | trn2_in_pub_si,
+    
+    trn1_in_pub_ft = replace_na(trn1_in_pub_ft, FALSE),
+    trn2_in_pub_ft = replace_na(trn2_in_pub_ft, FALSE),
+    trn_in_pub_ft = trn1_in_pub_ft | trn2_in_pub_ft
+  ) 
+
+# Keep editing table layout to make easier for upset plot package to read
+unique_to_crossreg_pipeline_upset <-
+  unique_to_crossreg_pipeline_upset |>
+  select(trn1,
+         trn2,
+         non_euctr_registry,
+         is_title_matched,
+         at_least_one_pub,
+         bidirectional,
+         unidirectional, 
+         standardized_pair
+  ) |>
+  rename(
+    "Title matched" = is_title_matched,
+    "Publication link" = at_least_one_pub,
+    "Bidirectional link" = bidirectional,
+    "Unidirectional link" = unidirectional
+  ) |>
+  pivot_longer(cols = -c(trn1, trn2, non_euctr_registry, standardized_pair), names_to = "link") |>
+  filter(value == TRUE) |>
+  group_by(trn1, trn2) |>
+  mutate(links = list(link)) |>
+  ungroup() |>
+  select(-value, -link) |>
+  distinct()
+
+
+# Upset plot showing connections between TRN pairs found exclusively by the crossreg pipeline approach
+unique_crossreg_pipeline_upset_plot <- unique_to_crossreg_pipeline_upset |>
+  ggplot(aes(x=links)) +
+  geom_bar() +
+  geom_text(stat='count', 
+            size = 5,
+            aes(label=after_stat(count)), 
+            vjust=-1) +
+  scale_x_upset(n_intersections = 20) +
+  ylab("Number of pairs") +
+  xlab("Linking combinations") +
+  theme(
+    legend.background = element_rect(color = "transparent", fill = "transparent"),
+    legend.position.inside = c(.85, .9),
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.title.x = element_text(size = 16)
+  )
 #######################################################################################
 # QUESTION: What kind of trial pairs did both the MDR data and the crossreg pipeline approach capture?
 # Use of broader table is intentional in order to capture full degree of overlap between MDR and the crossreg pipeline. 
