@@ -291,9 +291,10 @@ overall_crossreg_combinations_proportions <- trn_combos |>
     legend.position = c(.85, .9),
     legend.text = element_text(size = 12),
     legend.title = element_text(size = 12),
-    axis.title.y = element_text(size = 16),
+    axis.title.y = element_text(size = 16, margin = margin(r = -15)), 
     axis.title.x = element_text(size = 16)
   )
+
 
 # Upset plot showing all TRN pairs in analysis set, divided by registry (not super readable yet, too much text)
 registry_divided_combinations <- trn_combos |>
