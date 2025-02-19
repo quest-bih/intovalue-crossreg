@@ -136,16 +136,16 @@ base_ct_euctr_venn <- ggvenn(
   fill_color = c("#0073C2FF", "#EFC000FF"), # If you need to include title matching in the Venn, you will need to specify a 3rd color and comment out auto_scale = TRUE
   stroke_size = 0.5,
   auto_scale = TRUE,
-  text_size = 6,
+  text_size = 5,
   set_name_size = 0, # Turn off default labels for custom handling
 )
 
 # Add custom labels with text boxes
 base_ct_euctr_venn +
   annotate("label", x = -1.0, y = 0.75, label = "ClinicalTrials.gov TRN in EUCTR",
-           fill = "white", color = "black", size = 3.5, label.padding = unit(0.2, "lines")) +
+           fill = "white", color = "black", size = 4, label.padding = unit(0.2, "lines")) +
   annotate("label", x = 1.2, y = 0.75, label = "EUCTR TRN in ClinicalTrials.gov",
-           fill = "white", color = "black", size = 3.5, label.padding = unit(0.2, "lines")) # +
+           fill = "white", color = "black", size = 4, label.padding = unit(0.2, "lines")) # +
 # annotate("label", x = 0, y = -1.1, label = "Trials matched on title",
 #    fill = "white", color = "black", size = 3, label.padding = unit(0.2, "lines"))
 
@@ -188,7 +188,7 @@ base_drks_euctr_venn <- ggvenn(
   fill_color = c("#D12D2AFF", "#EFC000FF"), # If you need to include title matching in the Venn, you will need to specify a 3rd color and comment out auto_scale = TRUE
   stroke_size = 0.5,
   auto_scale = TRUE,
-  text_size = 4,
+  text_size = 5,
   set_name_size = 0 # Turn off default labels for custom handling
 )
 
@@ -203,16 +203,19 @@ base_drks_euctr_venn +
 
 # Arrange two Venn diagrams side by side
 grid.arrange(base_ct_euctr_venn +
-               annotate("label", x = -1.0, y = 0.75, label = "ClinicalTrials.gov TRN in EUCTR",
-                        fill = "white", color = "black", size = 3.5, label.padding = unit(0.2, "lines")) +
-               annotate("label", x = 1.2, y = 0.75, label = "EUCTR TRN in ClinicalTrials.gov",
-                        fill = "white", color = "black", size = 3.5, label.padding = unit(0.2, "lines")),
-             base_drks_euctr_venn +
-               annotate("label", x = -0.5, y = 0.25, label = "DRKS TRN in EUCTR",
+               annotate("label", x = -0.68, y = 0.75, label = "ClinicalTrials.gov TRN in EUCTR",
                         fill = "white", color = "black", size = 4, label.padding = unit(0.2, "lines")) +
-               annotate("label", x = 1.1, y = 0.75, label = "EUCTR TRN in DRKS",
+               annotate("label", x = 0.95, y = 0.75, label = "EUCTR TRN in ClinicalTrials.gov",
+                        fill = "white", color = "black", size = 4, label.padding = unit(0.2, "lines")),
+             base_drks_euctr_venn +
+               annotate("label", x = -0.4, y = 0.25, label = "DRKS TRN in EUCTR",
+                        fill = "white", color = "black", size = 4, label.padding = unit(0.2, "lines")) +
+               annotate("label", x = 1, y = 0.75, label = "EUCTR TRN in DRKS",
                         fill = "white", color = "black", size = 4, label.padding = unit(0.2, "lines")), 
              ncol = 2)
+
+grid.text("A", x = 0.02, y = 0.90, gp = gpar(fontsize = 20, fontface = "bold"))
+grid.text("B", x = 0.52, y = 0.90, gp = gpar(fontsize = 20, fontface = "bold"))
 
 #########################################################################################################################
 # Prepare data for upset plots
