@@ -117,21 +117,25 @@ manual_screening_plot <- manual_screening_upset |>
   ggplot(aes(x = links, fill = is_true_crossreg)) + 
   geom_bar(position = "stack") + 
   geom_text(
-    size = 7,
+    size = 6,
     stat = "count", 
     aes(label = after_stat(count), group = is_true_crossreg), 
     position = position_stack(vjust = 0.5) # Place labels in the middle of each section
   ) + 
   scale_x_upset(n_intersections = 20) + 
-  scale_fill_manual(values = c("TRUE" = "#B3EBF2", "FALSE" = "#009E73"),
-                    name = "Confirmed as a true cross-registration") +
+  scale_fill_manual(values = c("TRUE" = "steelblue", "FALSE" = "#F7C72F"),
+                    name = "Confirmed EUCTR cross-registration") +
+  scale_y_continuous(limits = c(0, 60)) +
   ylab("Number of pairs") + 
   xlab("Linking combinations") + 
+  theme_classic() +
   theme(
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16),
     legend.background = element_rect(color = "transparent", fill = "transparent"), 
-    legend.position = c(.85, .9), 
-    legend.text = element_text(size = 12),
-    legend.title = element_text(size = 12),
+    legend.position = c(.80, .9), 
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 14),
     axis.title.y = element_text(size = 16),
     axis.title.x = element_text(size = 16)
   )
