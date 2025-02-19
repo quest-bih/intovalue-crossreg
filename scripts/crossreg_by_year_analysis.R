@@ -69,6 +69,7 @@ p <-
     y = "IntoValue trials (DRKS or ClinicalTrials.gov)",
     fill = "Potential EUCTR cross-registration"
   ) +
+  scale_y_continuous(limits = c(0, 500)) +
   theme_classic() +
   theme(
     axis.text.x = element_text(size = 14),
@@ -76,5 +77,5 @@ p <-
     axis.title.x = element_text(size = 14, margin = margin(t = 15)),
     axis.title.y = element_text(size = 14, margin = margin(r = 20)),
     legend.title = element_blank(),
-    legend.text = element_text(size = 14),
+    legend.text = element_text(size = 14)
   )
