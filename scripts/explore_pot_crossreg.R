@@ -278,7 +278,7 @@ overall_crossreg_combinations_proportions <- trn_combos |>
   ggplot(aes(x = links)) +
   geom_bar(aes(y = after_stat(count / nrow(trn_combos) * 100))) +  # Set y as proportion for correct scaling
   geom_text(stat = 'count', 
-            size = 5,
+            size = 6,
             aes(y = after_stat(count / nrow(trn_combos) * 100), 
                 label = sprintf("%.1f%%", after_stat(count / nrow(trn_combos) * 100))), 
             vjust = -1) + # Display as percentages
@@ -286,9 +286,12 @@ overall_crossreg_combinations_proportions <- trn_combos |>
   scale_y_continuous(limits = c(0, 30), expand = expansion(mult = c(0, 0.05))) +  # Adjust y-axis limits and add small padding
   ylab("Proportion of pairs (%)") +  
   xlab("Linking combinations") +
+  theme_classic() +
   theme(
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16),
     legend.background = element_rect(color = "transparent", fill = "transparent"),
-    legend.position = c(.85, .9),
+    legend.position.inside = c(.85, .9),
     legend.text = element_text(size = 12),
     legend.title = element_text(size = 12),
     axis.title.y = element_text(size = 16, margin = margin(r = -15)), 
