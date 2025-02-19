@@ -70,18 +70,19 @@ ecrin_venn_data <- list(
 
 base_ecrin_venn <- ggvenn(
   ecrin_venn_data,
-  fill_color = c("#0073C2FF", "#EFC000FF"),
+  fill_color = c("steelblue", "#F7C72F"),
   stroke_size = 0.5,
-  text_size = 6,
+  text_size = 4,
   set_name_size = 0, # Turn off default labels for custom handling
   auto_scale = TRUE
 )
 
-base_ecrin_venn +
-  annotate("label", x = -1.5, y = 0.3, label = "Approach of the present study",
+p <- base_ecrin_venn +
+  annotate("label", x = -0.84, y = 0.4, label = "Approach of study",
            fill = "white", color = "black", size = 4, label.padding = unit(0.2, "lines")) +
-  annotate("label", x = 1.2, y = 0.3, label = "MDR Data",
-           fill = "white", color = "black", size = 4, label.padding = unit(0.2, "lines"))
+  annotate("label", x = 0.7, y = 0.4, label = "MDR Data",
+           fill = "white", color = "black", size = 4, label.padding = unit(0.2, "lines")) +
+  theme(plot.margin = margin(0.1, 0.1, 0.1, 0.1, "cm"))
 
 #######################################################################################
 # Here we identify the trial pairs unique to the MDR data and our approach, and where our approaches overlapped
