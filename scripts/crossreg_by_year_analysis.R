@@ -46,7 +46,8 @@ summary_by_year <- intovalue |>
   )
 
 # Plot the data
-ggplot(summary_by_year, aes(x = completion_year, y = count, fill = crossreg_status)) +
+p <-
+  ggplot(summary_by_year, aes(x = completion_year, y = count, fill = crossreg_status)) +
   geom_bar(stat = "identity", position = "stack") +
   geom_text(
     aes(
@@ -54,9 +55,11 @@ ggplot(summary_by_year, aes(x = completion_year, y = count, fill = crossreg_stat
                      paste0(round(crossreg_percentage), "%"), "")
     ), 
     position = position_stack(vjust = 0.5), 
-    color = "black", size = 4
+    color = "black", size = 5
   ) +
-  scale_fill_manual(values = c("FALSE" = "#f0e442", "TRUE" = "#009e73")) +
+  scale_fill_manual(values = c("FALSE" = "steelblue", "TRUE" = "#F7C72F"), 
+                    labels = c("No potential EUCTR cross-registration", 
+                               "Potential EUCTR cross-registration")) +
   scale_x_continuous(
     breaks = 2009:2017,  # Explicitly set discrete years as ticks
     labels = as.character(2009:2017) # Convert breaks to discrete labels
@@ -66,6 +69,12 @@ ggplot(summary_by_year, aes(x = completion_year, y = count, fill = crossreg_stat
     y = "IntoValue trials (DRKS or ClinicalTrials.gov)",
     fill = "Potential EUCTR cross-registration"
   ) +
-  theme_minimal(
-    base_size = 14
+  theme_classic() +
+  theme(
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14),
+    axis.title.x = element_text(size = 14, margin = margin(t = 15)),
+    axis.title.y = element_text(size = 14, margin = margin(r = 20)),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 14),
   )
