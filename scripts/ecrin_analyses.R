@@ -189,13 +189,17 @@ unique_crossreg_pipeline_upset_plot <- unique_to_crossreg_pipeline_upset |>
   ggplot(aes(x=links)) +
   geom_bar() +
   geom_text(stat='count', 
-            size = 5,
+            size = 6,
             aes(label=after_stat(count)), 
             vjust=-1) +
   scale_x_upset(n_intersections = 20) +
+  scale_y_continuous(limits = c(0, 100)) +
   ylab("Number of pairs") +
   xlab("Linking combinations") +
+  theme_classic() +
   theme(
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16),
     legend.background = element_rect(color = "transparent", fill = "transparent"),
     legend.position.inside = c(.85, .9),
     legend.text = element_text(size = 12),
