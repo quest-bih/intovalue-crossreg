@@ -419,34 +419,43 @@ print(combined_plot_summary)
 
 This analysis was limited to confirmed cross-registrations with a recruitment status available in both registries (`overall_recruitment_status_reg1` and `overall_recruitment_status_reg2`).
 
+This analysis was also limited to confirmed cross-registrations with an available DE protocol (6 cases):
+
 ```{r}
 
-discrepancy_data |>
+recruitment_data <- discrepancy_data |>
+  filter(!trn1 %in% c("2011-006041-14", "2012-002699-14", "2009-013328-21", 
+                      "2005-003018-14", "2012-004555-36", "2005-002011-24"))
+```
+
+```{r}
+
+recruitment_data |>
   count(overall_recruitment_status_reg1,
         overall_recruitment_status_reg2) |>
   mutate(percent = round(n / sum(n) * 100, 0))
 ```
 
-Since there is no missing data on either registry, the analysis was done on `r nrow(discrepancy_data)` pairs of true cross-registered pairs.
+Since there is no missing data on either registry, the analysis was done on `r nrow(recruitment_data)` pairs of true cross-registered pairs.
 
 ```{r}
 
-discrepancy_data |>
+recruitment_data |>
   count(registry2) |>
   mutate(percent = round(n / sum(n) * 100, 0))
 ```
 
-Of those `r nrow(discrepancy_data)` pairs, `r nrow(discrepancy_data |> filter(registry2 == "ClinicalTrials.gov"))` were EUCTR-ClinicalTrials.gov and `r nrow(discrepancy_data |> filter(registry2 == "DRKS"))` were EUCTR-DRKS
+Of those `r nrow(recruitment_data)` pairs, `r nrow(recruitment_data |> filter(registry2 == "ClinicalTrials.gov"))` were EUCTR-ClinicalTrials.gov and `r nrow(recruitment_data |> filter(registry2 == "DRKS"))` were EUCTR-DRKS
 
 ```{r}
 
-discrepancy_data |>
+recruitment_data |>
   filter(registry2 == "ClinicalTrials.gov") |>
   count(overall_recruitment_status_reg1,
         overall_recruitment_status_reg2) |>
   mutate(percent = round(n / sum(n) * 100, 0))
 
-discrepancy_data |>
+recruitment_data |>
   filter(registry2 == "DRKS") |>
   count(overall_recruitment_status_reg1,
         overall_recruitment_status_reg2) |>
@@ -459,34 +468,34 @@ discrepancy_data |>
 # Create objects for inline in text below 
 
 # EUCTR-ClinicalTrials.gov
-euctr_ctgov_percent_match <- discrepancy_data |> 
+euctr_ctgov_percent_match <- recruitment_data |> 
   filter(registry2 == "ClinicalTrials.gov") |> 
   summarize(match_percentage = mean(overall_recruitment_status_reg1 == overall_recruitment_status_reg2) * 100) |>
   round(0)
 
-euctr_ctgov_count_match <- discrepancy_data |> filter(registry2 == "ClinicalTrials.gov", overall_recruitment_status_reg1 == overall_recruitment_status_reg2)
+euctr_ctgov_count_match <- recruitment_data |> filter(registry2 == "ClinicalTrials.gov", overall_recruitment_status_reg1 == overall_recruitment_status_reg2)
   
-euctr_ctgov_percent_not_match <- discrepancy_data |> 
+euctr_ctgov_percent_not_match <- recruitment_data |> 
   filter(registry2 == "ClinicalTrials.gov") |> 
   summarize(match_percentage = mean(overall_recruitment_status_reg1 != overall_recruitment_status_reg2) * 100) |>
   round(0)
 
-euctr_ctgov_count_not_match <- discrepancy_data |> filter(registry2 == "ClinicalTrials.gov", overall_recruitment_status_reg1 != overall_recruitment_status_reg2)
+euctr_ctgov_count_not_match <- recruitment_data |> filter(registry2 == "ClinicalTrials.gov", overall_recruitment_status_reg1 != overall_recruitment_status_reg2)
 
 # EUCTR-DRKS 
-euctr_drks_percent_match <- discrepancy_data |> 
+euctr_drks_percent_match <- recruitment_data |> 
   filter(registry2 == "DRKS") |> 
   summarize(match_percentage = mean(overall_recruitment_status_reg1 == overall_recruitment_status_reg2) * 100) |>
   round(0)
 
-euctr_drks_count_match <- discrepancy_data |> filter(registry2 == "DRKS", overall_recruitment_status_reg1 == overall_recruitment_status_reg2)
+euctr_drks_count_match <- recruitment_data |> filter(registry2 == "DRKS", overall_recruitment_status_reg1 == overall_recruitment_status_reg2)
   
-euctr_drks_percent_not_match <- discrepancy_data |> 
+euctr_drks_percent_not_match <- recruitment_data |> 
   filter(registry2 == "DRKS") |> 
   summarize(match_percentage = mean(overall_recruitment_status_reg1 != overall_recruitment_status_reg2) * 100) |>
   round(0)
 
-euctr_drks_count_not_match <- discrepancy_data |> filter(registry2 == "DRKS", overall_recruitment_status_reg1 != overall_recruitment_status_reg2)
+euctr_drks_count_not_match <- recruitment_data |> filter(registry2 == "DRKS", overall_recruitment_status_reg1 != overall_recruitment_status_reg2)
 ```
 
 For EUCTR-ClinicalTrials.gov cross-registered trials, `r euctr_ctgov_percent_match`% (n = `r nrow(euctr_ctgov_count_match)`) had the same overall recruitment status ("Completed"), and `r euctr_ctgov_percent_not_match`% (n = `r nrow(euctr_ctgov_count_not_match)`) had a different overall recruitment status.
@@ -501,7 +510,7 @@ For EUCTR-DRKS cross-registered trials, `r euctr_drks_percent_match`% (n = `r nr
 
 #### Count of observations included in the analysis
 
-This is limited to confirmed cross-registrations with a date in both registries (i.e. when we had missing data in one or both registries, this cross-registration was excluded from the analysis). Additionally, we filtered for overall recruitment status = Completed for both registries and for EUCTR we excluded three cases where no global date was found on the results section and no DE protocol was available.
+This is limited to confirmed cross-registrations with a date in both registries (i.e. when we had missing data in one or both registries, this cross-registration was excluded from the analysis). Additionally, we filtered for overall recruitment status = Completed for both registries, and for EUCTR we excluded three cases where no global date was found on the results section and no DE protocol was available.
 
 **Note**: the discrepancy analysis of completion dates was conducted on completion dates rounded to the start of the month, to assess monthly differences.
 
