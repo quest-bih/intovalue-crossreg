@@ -6,6 +6,8 @@ library(ggupset)
 library(ggvenn)
 library(gtsummary)
 library(gridExtra)
+library(officer)
+library(flextable)
 
 
 # Read in data ------------------------------------------------------------
@@ -93,6 +95,15 @@ table_1_summary <- trn_filtered |>
   modify_caption("Characteristics indicating potential cross-registrations, overall and by registry (prior to manual validation).") %>%
   bold_labels() |>
   modify_footnote(everything() ~ NA)
+
+# Convert to a flextable object
+# table_1_summary_flex <- as_flex_table(table_1_summary)
+
+# Create a Word document and add the table
+# doc <- read_docx() %>%
+#   flextable::body_add_flextable(table_1_summary_flex)
+# 
+# print(doc, target = "pot_crossreg_linking.docx")
 
 
 #########################################################################################################################
