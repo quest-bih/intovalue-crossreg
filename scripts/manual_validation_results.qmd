@@ -294,10 +294,10 @@ main_data_summary <- discrepancy_data |>
          overall_recruitment_status_reg2 == "Completed") |>
   mutate(result_label = case_when(
       has_summary_results_reg1_main == FALSE & has_summary_results_reg2_main == FALSE ~ "No results",
-      has_summary_results_reg1_main == TRUE & has_summary_results_reg2_main == FALSE ~ "Only EUCTR",
+      has_summary_results_reg1_main == TRUE & has_summary_results_reg2_main == FALSE ~ "Only in EUCTR",
       has_summary_results_reg1_main == TRUE & has_summary_results_reg2_main == TRUE ~ "Both",
-      has_summary_results_reg1_main == FALSE & has_summary_results_reg2_main == TRUE ~ "Only other registry"),
-    result_label = factor(result_label, levels = c("Only other registry", "Both", "Only EUCTR", "No results"))) |>
+      has_summary_results_reg1_main == FALSE & has_summary_results_reg2_main == TRUE ~ "Only in other registry"),
+    result_label = factor(result_label, levels = c("Only in other registry", "Both", "Only in EUCTR", "No results"))) |>
   group_by(registry2, result_label) |>
   summarise(count = n(), .groups = 'drop') |>
   group_by(registry2) |>
@@ -310,10 +310,10 @@ sensitivity_data_summary <- discrepancy_data |>
          overall_recruitment_status_reg2 == "Completed") |>
   mutate(result_label = case_when(
       has_summary_results_reg1_sensitivity == FALSE & has_summary_results_reg2_sensitivity == FALSE ~ "No results",
-      has_summary_results_reg1_sensitivity == TRUE & has_summary_results_reg2_sensitivity == FALSE ~ "Only EUCTR",
+      has_summary_results_reg1_sensitivity == TRUE & has_summary_results_reg2_sensitivity == FALSE ~ "Only in EUCTR",
       has_summary_results_reg1_sensitivity == TRUE & has_summary_results_reg2_sensitivity == TRUE ~ "Both",
-      has_summary_results_reg1_sensitivity == FALSE & has_summary_results_reg2_sensitivity == TRUE ~ "Only other registry"),
-    result_label = factor(result_label, levels = c("Only other registry", "Both", "Only EUCTR", "No results"))) |>
+      has_summary_results_reg1_sensitivity == FALSE & has_summary_results_reg2_sensitivity == TRUE ~ "Only in other registry"),
+    result_label = factor(result_label, levels = c("Only in other registry", "Both", "Only in EUCTR", "No results"))) |>
   group_by(registry2, result_label) |>
   summarise(count = n(), .groups = 'drop') |>
   group_by(registry2) |>
@@ -329,39 +329,67 @@ plot_crossregs_freq <- function(tib_summary, registry2, legend_position = "none"
   tib_summary |> 
     ggplot(aes(x = analysis_type, y = percent, fill = result_label)) +
     geom_bar(stat = "identity", position = "stack") +
-    geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 3.5) +
-    labs(x = paste("EUCTR -",  registry2), y = "Percentage", fill = "Results") +
+    geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 4.5) +
+    labs(x = paste("EUCTR -",  registry2), y = "Cross-registered pairs", fill = "Results reporting") +
     scale_fill_manual(values = c("No results" = "lightgray", 
-                                 "Only EUCTR" = "#2577c5", 
+                                 "Only in EUCTR" = "#2577c5", 
                                  "Both" = "#3594cc", 
-                                 "Only other registry" = "#8cc5e3")) +
-    scale_y_continuous(limits = c(0, 101), breaks = seq(0, 100, by = 10)) +
+                                 "Only in other registry" = "#8cc5e3")) +
+    scale_y_continuous(limits = c(0, 101), breaks = seq(0, 100, by = 10),
+                       labels = scales::percent_format(scale = 1)) +
     theme_classic() +
-    theme(axis.text = element_text(size = 10),
-          legend.position = legend_position)
+    theme(axis.text = element_text(size = 14),
+          axis.title = element_text(size = 14),
+          axis.title.x = element_text(margin = margin(t = 20)),
+          axis.text.x = element_text(margin = margin(t = 8)), 
+          legend.position = legend_position, 
+          legend.text = element_text(size = 12),
+          legend.title = element_text(size = 14)   
+        )
 }
 
 # Create 2-pane plot
 plot1 <- bind_rows(
   main_data_summary |> 
     filter(registry2 == "ClinicalTrials.gov") |>  
-    mutate(analysis_type = "Main"), 
+    mutate(analysis_type = "Tabular results only"), 
   sensitivity_data_summary |> 
     filter(registry2 == "ClinicalTrials.gov") |> 
-    mutate(analysis_type = "Sensitivity 1")) |> 
+    mutate(analysis_type = "Tabular + other formats (EUCTR)")) |> 
+  mutate(analysis_type = factor(analysis_type, levels = c("Tabular results only", "Tabular + other formats (EUCTR)"))) |> 
   plot_crossregs_freq(registry2 = "ClinicalTrials.gov", legend_position = "none")
 
 plot2 <- bind_rows(
-    main_data_summary |> 
-      filter(registry2 == "DRKS") |> 
-      mutate(analysis_type = "Main"), 
-    sensitivity_data_summary |> 
-      filter(registry2 == "DRKS") |> 
-      mutate(analysis_type = "Sensitivity 1")) |> 
+  main_data_summary |> 
+    filter(registry2 == "DRKS") |> 
+    mutate(analysis_type = "Tabular results only"), 
+  sensitivity_data_summary |> 
+    filter(registry2 == "DRKS") |> 
+    mutate(analysis_type = "Tabular + other formats")) |> 
+  mutate(analysis_type = factor(analysis_type, levels = c("Tabular results only", "Tabular + other formats"))) |> 
   plot_crossregs_freq(registry2 = "DRKS", legend_position = "right")
 
+# Define custom labels with manual line breaks
+custom_labels <- c(
+  "Tabular results only" = "Tabular results\nonly",
+  "Tabular + other formats" = "Tabular +\nother formats",
+  "Tabular + other formats (EUCTR)" = "Tabular + \nother formats (EUCTR)",
+  "Publications in ClinicalTrials.gov" = "Publications in\nClinicalTrials.gov")
+
+# Modify each plot before combining
+plot1 <- plot1 +
+  scale_x_discrete(labels = custom_labels) + 
+  theme(legend.position = "none")
+
+plot2 <- plot2 + scale_x_discrete(labels = custom_labels)
+
+# Combine plots
 combined_plot_summary <- plot1 + plot2 + plot_layout(ncol = 2)
 print(combined_plot_summary)
+
+#ggsave("summary_results_main.png", 
+#       plot = combined_plot_summary, 
+#       width = 16, height = 10, dpi = 300)
 ```
 
 ### Summary results - main, first sensitivity and second sensitivity analysis
@@ -374,43 +402,46 @@ sensitivity_data_summary_v2 <- discrepancy_data |>
          overall_recruitment_status_reg2 == "Completed") |>
   mutate(result_label = case_when(
       has_summary_results_reg1_sensitivity_v2 == FALSE & has_summary_results_reg2_sensitivity_v2 == FALSE ~ "No results",
-      has_summary_results_reg1_sensitivity_v2 == TRUE & has_summary_results_reg2_sensitivity_v2 == FALSE ~ "Only EUCTR",
+      has_summary_results_reg1_sensitivity_v2 == TRUE & has_summary_results_reg2_sensitivity_v2 == FALSE ~ "Only in EUCTR",
       has_summary_results_reg1_sensitivity_v2 == TRUE & has_summary_results_reg2_sensitivity_v2 == TRUE ~ "Both",
-      has_summary_results_reg1_sensitivity_v2 == FALSE & has_summary_results_reg2_sensitivity_v2 == TRUE ~ "Only other registry"),
-    result_label = factor(result_label, levels = c("Only other registry", "Both", "Only EUCTR", "No results"))) |>
+      has_summary_results_reg1_sensitivity_v2 == FALSE & has_summary_results_reg2_sensitivity_v2 == TRUE ~ "Only in other registry"),
+    result_label = factor(result_label, levels = c("Only in other registry", "Both", "Only in EUCTR", "No results"))) |>
   group_by(registry2, result_label) |>
   summarise(count = n(), .groups = 'drop') |>
   group_by(registry2) |>
   mutate(percent = count / sum(count) * 100) |>
   mutate(label = paste0(round(percent, 0), "% (n = ", count, ")"))
 
-# Create 2-pane plot
-plot1 <- bind_rows(
+# Create plot
+summary_results_sens <- bind_rows(
   main_data_summary |> 
     filter(registry2 == "ClinicalTrials.gov") |>  
-    mutate(analysis_type = "Main"), 
+    mutate(analysis_type = "Tabular results only"), 
   sensitivity_data_summary |> 
     filter(registry2 == "ClinicalTrials.gov") |> 
-    mutate(analysis_type = "Sensitivity 1"), 
+    mutate(analysis_type = "Tabular + other formats (EUCTR)"), 
   sensitivity_data_summary_v2 |>
     filter(registry2 == "ClinicalTrials.gov") |>
-    mutate(analysis_type = "Sensitivity 2")) |> 
+    mutate(analysis_type = "Publications in ClinicalTrials.gov")) |> 
+  mutate(analysis_type = factor(analysis_type, levels = c("Tabular results only", "Tabular + other formats (EUCTR)", "Publications in ClinicalTrials.gov"))) |> 
   plot_crossregs_freq(registry2 = "ClinicalTrials.gov", legend_position = "none")
 
-plot2 <- bind_rows(
-    main_data_summary |> 
-      filter(registry2 == "DRKS") |> 
-      mutate(analysis_type = "Main"), 
-    sensitivity_data_summary |> 
-      filter(registry2 == "DRKS") |> 
-      mutate(analysis_type = "Sensitivity 1"),
-    sensitivity_data_summary_v2 |>
-      filter(registry2 == "DRKS") |>
-      mutate(analysis_type = "Sensitivity 2")) |> 
-  plot_crossregs_freq(registry2 = "DRKS", legend_position = "right")
+# Define custom labels with manual line breaks
+custom_labels <- c(
+  "Tabular results only" = "Tabular results\nonly",
+  "Tabular + other formats (EUCTR)" = "Tabular +\nother formats (EUCTR)",
+  "Publications in ClinicalTrials.gov" = "Publications in\nClinicalTrials.gov")
 
-combined_plot_summary <- plot1 + plot2 + plot_layout(ncol = 2)
-print(combined_plot_summary)
+# Modify each plot before combining
+summary_results_sens <- summary_results_sens +
+  scale_x_discrete(labels = custom_labels)
+
+# Result
+print(summary_results_sens)
+
+#ggsave("summary_results_sens.png", 
+#      plot = summary_results_sens, 
+#     width = 10, height = 10, dpi = 300)
 ```
 
 # Recruitment status
@@ -419,7 +450,7 @@ print(combined_plot_summary)
 
 This analysis was limited to confirmed cross-registrations with a recruitment status available in both registries (`overall_recruitment_status_reg1` and `overall_recruitment_status_reg2`).
 
-This analysis was also limited to confirmed cross-registrations with an available DE protocol (6 cases):
+This analysis was also limited to confirmed cross-registrations with an available DE protocol (6 cases were excluded):
 
 ```{r}
 
@@ -536,11 +567,12 @@ total_observations_reg1 <- discrepancy_data |>
   filter(
     !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24"),
     overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed",
-         !is.na(completion_month_year_reg1))
+    !is.na(completion_month_year_reg1))
 
 total_observations_reg2 <- discrepancy_data |>
-  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed",
-         !is.na(completion_month_year_reg2))
+  filter(
+    overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed",
+    !is.na(completion_month_year_reg2))
 ```
 
 For registry1 (EUCTR), there were `r nrow(total_observations_reg1)` pairs that were confirmed cross-registrations and no missing data on `completion_month_year_reg1`.
@@ -905,125 +937,51 @@ discrepancy_data |>
 
 ### Main analysis plot
 
-**Current version**
-
 ```{r}
 
-completion_plot_main <- discrepancy_data |>
+completion_date_main <- discrepancy_data |>
   filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
-  filter(!is.na(completion_month_year_reg1) & !is.na(completion_month_year_reg2)) |>
-  mutate(time_diff = abs(completion_month_year_reg2 - completion_month_year_reg1),
-         is_equal = completion_month_year_reg1 == completion_month_year_reg2) |>
-  arrange(time_diff) |>
-  mutate(trn1 = factor(trn1, levels = trn1)) |>
-  ggplot(aes(y = trn1, 
-             x = completion_month_year_reg1,
-             xend = completion_month_year_reg2)) +
-  geom_dumbbell(color = "darkgray",  
-                size = 1,            
-                dot_guide = FALSE,   
-                size_x = 3,          
-                size_xend = 3,       
-                colour_x = "#3594cc",     
-                colour_xend = "#8cc5e3") + 
-  geom_point(data = . %>% filter(is_equal),
-             aes(x = completion_month_year_reg1, shape = "Both match"),
-             color = "#e79f31", 
-             size = 3.3) +
-  theme_classic() +
-  theme(axis.text.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        legend.position = "top") +  
-  labs(x = "Year of completion\n(EUCTR - Other registry)",
-       y = "Pairs of cross-registered trials") +  
-  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
-  geom_point(aes(x = as.Date(NA), y = NA, color = factor("EUCTR", levels = c("EUCTR", "Other registry"))), size = 3) +
-  geom_point(aes(x = as.Date(NA), y = NA, color = factor("Other registry", levels = c("EUCTR", "Other registry"))), size = 3) +
-  scale_color_manual(name = "Registry",
-                     values = c("EUCTR" = "#3594cc", 
-                                "Other registry" = "#8cc5e3"),
-                     labels = c("EUCTR", "Other registry")) +
-  scale_shape_manual(values = c("Both match" = 16), labels = c("Both match" = "Both match")) +
-  guides(color = guide_legend(order = 1, override.aes = list(size = 3)),
-         shape = guide_legend(order = 2, title = NULL))
-
-print(completion_plot_main)
-```
-
-**Additional option**
-
-```{r}
-
-discrepancy_data |>
-  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
-  filter(!is.na(completion_month_year_reg1) & !is.na(completion_month_year_reg2)) |>
+  filter(!is.na(completion_month_year_reg1) & !is.na(completion_month_year_reg2),
+         !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24")) |>
   mutate(time_diff = abs(completion_month_year_reg2 - completion_month_year_reg1),
          is_equal = completion_month_year_reg1 == completion_month_year_reg2) |>
   arrange(time_diff) |>
   mutate(trn1 = factor(trn1, levels = trn1)) |> 
   ggplot(aes(completion_month_year_reg1, completion_month_year_reg2, color = registry2)) +
-  geom_point(alpha = 0.6, size = 1.5) +
+  geom_point(alpha = 0.6, size = 2) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dotted", color = "black", alpha = 0.7) +
   theme_classic() +
-  theme(legend.position = "top") +  
+  theme(legend.position = "right",
+        legend.background = element_rect(color = "black", fill = "white"),
+        legend.text = element_text(size = 14),    # Size of legend categoriews
+        legend.title = element_text(size = 15),   # Size of legend title
+        axis.text = element_text(size = 12),      # Size of years
+        axis.title = element_text(size = 14),     # Size of axis titles
+        axis.ticks.length = unit(0.3, "cm"),      # Length of axis ticks
+        axis.title.x = element_text(margin = margin(t = 10, b = 15)), # Size of margins x-axis
+        axis.title.y = element_text(margin = margin(r = 15, l = 10)), # Size of margins y-axis
+        axis.text.x = element_text(margin = margin(t = 10)), # Distance of label to x-axis
+        axis.text.y = element_text(margin = margin(r = 10))  # Distance of label to y-axis
+  ) +  
   labs(x = "Year of completion on EUCTR",
        y = "Year of completion on other registry") +  
   scale_x_date(date_breaks = "1 year", date_labels = "%Y", limits = c(ym("2007-01"), ym("2023-01"))) +
   scale_y_date(date_breaks = "1 year", date_labels = "%Y", limits = c(ym("2007-01"), ym("2023-01"))) +
-  scale_color_manual(name = "Registry", values = c("#e79f31", "#3594cc"))
+  scale_color_manual(name = "Registry", values = c("#F7C72F", "steelblue")) +
+  coord_fixed() # Ensures 1:1 ratio for the plot
+
+print(completion_date_main)
+
+#ggsave("completion_date_main.png", 
+#       plot = completion_date_main, 
+#       width = 12, height = 10, dpi = 300)
 ```
 
 ### Sensitivity analysis plot
 
-**Current version**
-
 ```{r}
 
-completion_plot_sensitivity <- discrepancy_data |>
-  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
-  filter(!is.na(completion_month_year_protocol) & !is.na(completion_month_year_reg2)) |>
-  mutate(time_diff = abs(completion_month_year_reg2 - completion_month_year_protocol),
-         is_equal = completion_month_year_protocol == completion_month_year_reg2) |>
-  arrange(time_diff) |>
-  mutate(trn1 = factor(trn1, levels = trn1)) |>
-  ggplot(aes(y = trn1, 
-             x = completion_month_year_protocol,
-             xend = completion_month_year_reg2)) +
-  geom_dumbbell(color = "darkgray",  
-                size = 1,            
-                dot_guide = FALSE,   
-                size_x = 3,          
-                size_xend = 3,       
-                colour_x = "#3594cc",     
-                colour_xend = "#8cc5e3") + 
-  geom_point(data = . %>% filter(is_equal),
-             aes(x = completion_month_year_protocol, shape = "Both match"),
-             color = "#e79f31", 
-             size = 3.3) +
-  theme_classic() +
-  theme(axis.text.y = element_blank(),
-        axis.ticks.y = element_blank(),
-        legend.position = "top") +  
-  labs(x = "Year of completion\n(EUCTR - Other registry)",
-       y = "Pairs of cross-registered trials") +  
-  scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
-  geom_point(aes(x = as.Date(NA), y = NA, color = factor("EUCTR", levels = c("EUCTR", "Other registry"))), size = 3) +
-  geom_point(aes(x = as.Date(NA), y = NA, color = factor("Other registry", levels = c("EUCTR", "Other registry"))), size = 3) +
-  scale_color_manual(name = "Registry",
-                     values = c("EUCTR" = "#3594cc", 
-                                "Other registry" = "#8cc5e3"),
-                     labels = c("EUCTR", "Other registry")) +
-  scale_shape_manual(values = c("Both match" = 16), labels = c("Both match" = "Both match")) +
-  guides(color = guide_legend(order = 1, override.aes = list(size = 3)),
-         shape = guide_legend(order = 2, title = NULL))
-
-print(completion_plot_sensitivity)
-```
-
-**Additional option**
-
-```{r}
-
-discrepancy_data |>
+completion_date_sens <- discrepancy_data |>
   filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
   filter(!is.na(completion_month_year_protocol) & !is.na(completion_month_year_reg2)) |>
   mutate(time_diff = abs(completion_month_year_reg2 - completion_month_year_protocol),
@@ -1031,12 +989,31 @@ discrepancy_data |>
   arrange(time_diff) |>
   mutate(trn1 = factor(trn1, levels = trn1)) |> 
   ggplot(aes(completion_month_year_protocol, completion_month_year_reg2, color = registry2)) +
-  geom_point(alpha = 0.6, size = 1.5) +
+  geom_point(alpha = 0.6, size = 2) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dotted", color = "black", alpha = 0.7) +
   theme_classic() +
-  theme(legend.position = "top") +  
+  theme(legend.position = "right",
+        legend.background = element_rect(color = "black", fill = "white"),
+        legend.text = element_text(size = 14),    # Size of legend categoriews
+        legend.title = element_text(size = 15),   # Size of legend title
+        axis.text = element_text(size = 12),      # Size of years
+        axis.title = element_text(size = 14),     # Size of axis titles
+        axis.ticks.length = unit(0.3, "cm"),      # Length of axis ticks
+        axis.title.x = element_text(margin = margin(t = 10, b = 15)), # Size of margins x-axis
+        axis.title.y = element_text(margin = margin(r = 15, l = 10)),  # Size of margins y-axis
+        axis.text.x = element_text(margin = margin(t = 10)), # Distance of label to x-axis
+        axis.text.y = element_text(margin = margin(r = 10))  # Distance of label to y-axis
+  ) + 
   labs(x = "Year of completion on EUCTR",
        y = "Year of completion on other registry") +  
   scale_x_date(date_breaks = "1 year", date_labels = "%Y", limits = c(ym("2007-01"), ym("2023-01"))) +
   scale_y_date(date_breaks = "1 year", date_labels = "%Y", limits = c(ym("2007-01"), ym("2023-01"))) +
-  scale_color_manual(name = "Registry", values = c("#e79f31", "#3594cc"))
+  scale_color_manual(name = "Registry", values = c("#F7C72F", "steelblue")) +
+  coord_fixed() # Ensures 1:1 ratio for the plot
+
+print(completion_date_sens)
+
+#ggsave("completion_date_sens.png", 
+#       plot = completion_date_sens, 
+#       width = 12, height = 10, dpi = 300)
 ```
