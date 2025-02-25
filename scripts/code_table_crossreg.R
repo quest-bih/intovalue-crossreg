@@ -1,4 +1,5 @@
 #### TABLE GENERATION CROSS-REG ####  
+
 # This file contains the code to generate a table with an overview of the amount of suspected cross-registrations. 
 # These are broken down by priority, and by the following levels: overall, manually reviewed and confirmed true cross-registrations.
 
@@ -6,6 +7,7 @@
 
 library(tidyverse)
 library(gt)
+library(glue)
 
 final_data <- read_csv(here::here("data", "manual_validation_processed.csv"))
 trn_trn_table <- readRDS(here::here("data", "crossreg_pipeline_output.rds"))
@@ -120,6 +122,15 @@ summary_table <- summary_table |>
                            "Priority 3" = "Remaining cross-registrations with approximate title matching",
                            "Priority 4" = "Remaining cross-registrations with match only on TRN in publication"))
 
+# Calculate the total counts for columns
+overall_count <- nrow(data_table)
+reviewed_count <- data_table %>%
+  filter(manually_reviewed == TRUE) %>%
+  nrow()
+true_crossreg_count <- data_table %>%
+  filter(is_true_crossreg == TRUE) %>%
+  nrow()
+
 # Create table
 final_table <- summary_table |> 
   gt() |> 
@@ -128,9 +139,9 @@ final_table <- summary_table |>
   ) |> 
   cols_label(
     category = "",
-    overall = md("Overall <br> (n = 625)"),
-    reviewed = md("Manually screened <br> (n = 242)"),
-    true_crossreg = md("Confirmed <br> (n = 232)")
+    overall = md(glue("Overall <br> (n = {overall_count})")),
+    reviewed = md(glue("Manually screened <br> (n = {reviewed_count})")),
+    true_crossreg = md(glue("Confirmed <br> (n = {true_crossreg_count})"))
   ) |> 
   fmt_number(
     columns = c(overall, reviewed, true_crossreg),
@@ -164,4 +175,72 @@ final_table <- summary_table |>
 print(final_table)
 
 #### Export table as word document ####
-#gtsave(final_table, filename = "final_table.docx")
+gtsave(final_table, filename = "final_table.docx")
+
+#### Vladi's suggestion ####
+library(officer)
+library(flextable)
+
+# Function for totals and subtotals
+
+add_subtotals <- function(tib, subtotal_group, subtotal_function, subtotal_col) {
+  subtotals <- tib |>
+    dplyr::group_by({{ subtotal_group }}) |>
+    dplyr::summarise(dplyr::across(dplyr::where(is.numeric), subtotal_function)) |>
+    dplyr::mutate(!!subtotal_col := "(Subtotal)")
+  tib |>
+    dplyr::bind_rows(subtotals) |>
+    dplyr::arrange({{ subtotal_group }}, !!ensym(subtotal_col) != "(Subtotal)")
+  
+}
+
+totals <- registry_counts |>
+  summarise(across(where(is.numeric), sum))
+
+# Approach
+
+subtotal_header <- as_chunk(c("", "", paste0("n = ", totals[-1], "")), 
+                            fp_text_default()) 
+
+table <- registry_counts |>
+  add_subtotals(priority, sum, "registry2") |> 
+  mutate(priority = case_match(
+    priority,
+    1 ~ "Cross-registrations with bidirectional registry links", 
+    2 ~ "Remaining cross-registrations with unidirectional registry link", 
+    3 ~ "Remaining cross-registrations with approximate title matching",
+    4 ~ "Remaining cross-registrations with match only on TRN in publication"
+  )) |> 
+  mutate(priority = factor(priority, levels = c(
+    "Cross-registrations with bidirectional registry links", 
+    "Remaining cross-registrations with unidirectional registry link", 
+    "Remaining cross-registrations with approximate title matching",
+    "Remaining cross-registrations with match only on TRN in publication"
+  ))) |>  # Set the factor levels to keep the correct order
+  pivot_longer(overall:true_crossreg, values_to = "n_obs", names_to = "type") |> 
+  tabulator(rows = c("priority", "registry2"),
+            columns = "type",
+            `n` = as_paragraph(n_obs)) |> 
+  as_flextable(separate_with = "priority", sep_w = 0) |> 
+  mk_par(part = "header", j = "registry2", value = as_paragraph("Registry")) |>
+  mk_par(part = "header", j = "priority", value = as_paragraph("")) |> 
+  mk_par(j = "priority", 
+         value = as_paragraph(
+           as_b(priority))) |>
+  set_header_labels(
+    "overall@n" = "Overall",
+    "reviewed@n" = "Manually screened",
+    "true_crossreg@n" = "Confirmed"
+  ) |> 
+  add_header_row(values = as_paragraph(subtotal_header), top = FALSE) |> 
+  autofit()
+
+# Create Word document
+doc <- read_docx()
+
+# Add the flextable to Word document
+doc <- doc %>%
+  body_add_flextable(table)
+
+# Export Word document
+print(doc, target = "table.docx")
