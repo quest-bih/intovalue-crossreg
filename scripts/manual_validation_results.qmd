@@ -342,6 +342,7 @@ plot_crossregs_freq <- function(tib_summary, registry2, legend_position = "none"
           axis.title = element_text(size = 14),
           axis.title.x = element_text(margin = margin(t = 20)),
           axis.text.x = element_text(margin = margin(t = 8)), 
+          axis.title.y = element_text(margin = margin(r = 20)),
           legend.position = legend_position, 
           legend.text = element_text(size = 12),
           legend.title = element_text(size = 14)   
@@ -424,7 +425,7 @@ summary_results_sens <- bind_rows(
     filter(registry2 == "ClinicalTrials.gov") |>
     mutate(analysis_type = "Publications in ClinicalTrials.gov")) |> 
   mutate(analysis_type = factor(analysis_type, levels = c("Tabular results only", "Tabular + other formats (EUCTR)", "Publications in ClinicalTrials.gov"))) |> 
-  plot_crossregs_freq(registry2 = "ClinicalTrials.gov", legend_position = "none")
+  plot_crossregs_freq(registry2 = "ClinicalTrials.gov", legend_position = "right")
 
 # Define custom labels with manual line breaks
 custom_labels <- c(
@@ -958,8 +959,8 @@ completion_date_main <- discrepancy_data |>
         axis.text = element_text(size = 12),      # Size of years
         axis.title = element_text(size = 14),     # Size of axis titles
         axis.ticks.length = unit(0.3, "cm"),      # Length of axis ticks
-        axis.title.x = element_text(margin = margin(t = 10, b = 15)), # Size of margins x-axis
-        axis.title.y = element_text(margin = margin(r = 15, l = 10)), # Size of margins y-axis
+        axis.title.x = element_text(margin = margin(t = 20, b = 15)), # Size of margins x-axis
+        axis.title.y = element_text(margin = margin(r = 20, l = 10)), # Size of margins y-axis
         axis.text.x = element_text(margin = margin(t = 10)), # Distance of label to x-axis
         axis.text.y = element_text(margin = margin(r = 10))  # Distance of label to y-axis
   ) +  
@@ -999,8 +1000,8 @@ completion_date_sens <- discrepancy_data |>
         axis.text = element_text(size = 12),      # Size of years
         axis.title = element_text(size = 14),     # Size of axis titles
         axis.ticks.length = unit(0.3, "cm"),      # Length of axis ticks
-        axis.title.x = element_text(margin = margin(t = 10, b = 15)), # Size of margins x-axis
-        axis.title.y = element_text(margin = margin(r = 15, l = 10)),  # Size of margins y-axis
+        axis.title.x = element_text(margin = margin(t = 20, b = 15)), # Size of margins x-axis
+        axis.title.y = element_text(margin = margin(r = 20, l = 10)),  # Size of margins y-axis
         axis.text.x = element_text(margin = margin(t = 10)), # Distance of label to x-axis
         axis.text.y = element_text(margin = margin(r = 10))  # Distance of label to y-axis
   ) + 
