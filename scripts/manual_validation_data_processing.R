@@ -38,7 +38,7 @@ data <- data |>
          has_summary_results_reg1_sensitivity = has_summary_results_reg1._sensitivity,
          has_summary_results_reg2_sensitivity = has_summary_results_reg2._sensitivity)
 
-#### IMPLEMENT CORRECTIONS ####
+#### INITIAL DATA CORRECTIONS ####
 
 # Correct date for NCT01510704 from NA to 2012-04-30
 data <- data |> 
@@ -62,16 +62,6 @@ data <- data |>
   rows_update(tribble(~trn1, ~general_comment,
                       "2012-002699-14", data$general_comment[data$trn1 == "2009-014076-22"],
                       "2009-014076-22", NA_character_), by = "trn1")
-
-# Correct is_true_crossreg (from TRUE to FALSE) for pair NCT01422512 - 2011-006277-25
-
-# The two trials were considered initially as a true cross-registration due to them matching on almost all aspects.
-# However, upon inspection these TRN are from different trials: 2011-006277-25 was from Seasonal Optaflu trial 2012/13 
-# and NCT01422512 from Seasonal Optaflu trial 2011/12. Therefore, they are not a true cross-registered trial.
-
-data <- data |>
-  rows_update(tribble(~trn1, ~is_true_crossreg,
-                      "NCT01422512", FALSE), by = "trn1")
 
 #### REMOVE SUMMARY RESULT COLUMNS ####
 # These columns will be re-generated computationally in a section below.
@@ -368,6 +358,20 @@ joined_data <- joined_data |>
   ) |> 
   relocate(completion_date_protocol, .after = completion_date_type_reg1) |>
   relocate(completion_month_year_protocol, .after = completion_date_protocol)
+
+#### FINAL DATA CORRECTIONS ####
+
+# This section is implemented after a quality review of the manual validation to identify any potential false-positives in 
+# true cross-registrations. As a result, 5 pairs were modified from TRUE to FALSE: 
+
+joined_data <- joined_data |>
+  rows_update(tribble(~trn1, ~trn2, ~is_true_crossreg,
+                      "2013-000931-28", "NCT02052960", FALSE,          # Priority 2
+                      "2011-006277-25", "NCT01422512", FALSE,          # Priority 3
+                      "2008-006778-14", "NCT00874107", FALSE,          # Priority 3
+                      "2013-000999-15", "NCT02371434", FALSE,          # Priority 3
+                      "2011-003648-31", "NCT02035709", FALSE),         # Priority 4
+              by = c("trn1", "trn2"))
 
 ### EXPORT FINAL DATASET
 
