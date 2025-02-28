@@ -184,6 +184,20 @@ walk(column_pairs, \(x) compare_columns(data_transformed, x[1], drks_ctgov_data,
 
 joined_data <- bind_rows(euctr_data, data_transformed)
 
+#### FALSE POSITIVE CORRECTIONS ####
+
+# This section is implemented after a quality review of the manual validation to identify any potential false-positives in 
+# true cross-registrations. As a result, 5 pairs were modified from TRUE to FALSE: 
+
+joined_data <- joined_data |>
+  rows_update(tribble(~trn1, ~trn2, ~is_true_crossreg,
+                      "2013-000931-28", "NCT02052960", FALSE,          # Priority 2
+                      "2011-006277-25", "NCT01422512", FALSE,          # Priority 3
+                      "2008-006778-14", "NCT00874107", FALSE,          # Priority 3
+                      "2013-000999-15", "NCT02371434", FALSE,          # Priority 3
+                      "2011-003648-31", "NCT02035709", FALSE),         # Priority 4
+              by = c("trn1", "trn2"))
+
 #### CREATE COLUMNS FOR SUMMARY RESULTS ANALYSES ####
 
 # Derive booleans for results reporting
@@ -330,15 +344,15 @@ discrepancy_data <- joined_data |>
     overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed"
   )
 
-# There are 199 observations in the discrepancy analysis of completion date
-# This includes 27 observations with a missing completion_date_protocol from the EUCTR dump
+# There are 195 observations in the discrepancy analysis of completion date
+# This includes 25 observations with a missing completion_date_protocol from the EUCTR dump
 discrepancy_data |>
   count(is.na(completion_date_protocol))
 
-# Let's explore missing the 28 completion_date_protocol data in the discrepancy data
+# Let's explore missing the 25 completion_date_protocol data in the discrepancy data
 #   - 6 of these do not have a DE protocol in the EUCTR dump
 #   - 8 of these do not have a completion date on either the DE protocol or results (see `completion_date_type_reg1` == Missing)
-#   - 13 of these do not have a completion date on the DE protocol
+#   - 11 of these do not have a completion date on the DE protocol
 
 discrepancy_data |>
   select(trn1, 
@@ -358,20 +372,6 @@ joined_data <- joined_data |>
   ) |> 
   relocate(completion_date_protocol, .after = completion_date_type_reg1) |>
   relocate(completion_month_year_protocol, .after = completion_date_protocol)
-
-#### FINAL DATA CORRECTIONS ####
-
-# This section is implemented after a quality review of the manual validation to identify any potential false-positives in 
-# true cross-registrations. As a result, 5 pairs were modified from TRUE to FALSE: 
-
-joined_data <- joined_data |>
-  rows_update(tribble(~trn1, ~trn2, ~is_true_crossreg,
-                      "2013-000931-28", "NCT02052960", FALSE,          # Priority 2
-                      "2011-006277-25", "NCT01422512", FALSE,          # Priority 3
-                      "2008-006778-14", "NCT00874107", FALSE,          # Priority 3
-                      "2013-000999-15", "NCT02371434", FALSE,          # Priority 3
-                      "2011-003648-31", "NCT02035709", FALSE),         # Priority 4
-              by = c("trn1", "trn2"))
 
 ### EXPORT FINAL DATASET
 
