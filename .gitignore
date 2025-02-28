@@ -5,3 +5,6 @@
 
 # mac OS
 .DS_Store
+
+#EUCTR data
+data/euctr_dump.csv
