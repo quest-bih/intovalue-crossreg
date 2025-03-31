@@ -1,0 +1,1020 @@
+---
+title: "Results manual validation"
+format: html
+editor: visual
+execute:
+  warning: false
+---
+
+# Dataset and packages
+
+```{r}
+
+library(tidyverse)
+library(here)
+library(ctregistries)
+library(patchwork)
+library(ggalt)
+
+final_data <- read_csv(here::here("data", "manual_validation_processed.csv"))
+```
+
+# Manual validation analysis
+
+## Registry pair count
+
+```{r}
+
+final_data |>
+  count(registry1, registry2) 
+```
+
+## Overall precision
+
+```{r}
+
+final_data |>
+  count(is_true_crossreg) |>
+  mutate(percent = round(n / sum(n) * 100, 0))
+```
+
+## Precision by category
+
+```{r}
+
+final_data |>
+  group_by(priority) |>
+  count(is_true_crossreg) |>
+  mutate(percent = round(n / sum(n) * 100, 0))
+```
+
+## Count for Table 2
+
+This section presents the number of pairs by registry (EUCTR-ClinicalTrials.gov or EUCTR-DRKS) through all the stages (suspected cross-registrations, manually screened cross-registrations and validated cross-registrations.
+
+```{r}
+
+trn_trn_table <- readRDS(here::here("data", "crossreg_pipeline_output.rds"))
+
+filtered_table <- trn_trn_table |>
+  filter(priority >= 1 & priority <= 4, # Select priorities with over 50% precision in pilot
+         drks_removed == FALSE,         # Remove TRNs from trials deleted from DRKS registry
+         euctr_id_in_euctr == TRUE,     # Select TRNs that resolve in EUCTR registry
+         trn2 != "2008-004408-29")      # Exclude one additional non-resolving TRN from EUCTR
+```
+
+### Overall suspected cross-registrations (n = `r nrow(filtered_table)`)
+
+```{r}
+#| include: false
+
+report_result <- function(tib, filter_col, filter_val, result_col) {
+  tib |> 
+    filter({{filter_col}} == filter_val) |> 
+    pull({{result_col}}) |> 
+    sum()
+}
+```
+
+```{r}
+
+# Count of non-euctr trns
+suspected <- filtered_table |> 
+    rowwise() |> 
+    mutate(
+        registry1 = ctregistries::which_registry(trn1),
+        registry2 = ctregistries::which_registry(trn2),
+        non_euctr_registry = if_else(registry1 == "EudraCT", registry2, registry1)
+        ) |>
+    count(non_euctr_registry, priority)
+```
+
+**Priority 1:** `r report_result(suspected |> filter(priority == 1), non_euctr_registry, "DRKS", n)` DRKS, `r report_result(suspected |> filter(priority == 1), non_euctr_registry, "ClinicalTrials.gov", n)` NCT (`r report_result(suspected, priority, 1, n)` total)
+
+**Priority 2:** `r report_result(suspected |> filter(priority == 2), non_euctr_registry, "DRKS", n)` DRKS, `r report_result(suspected |> filter(priority == 2), non_euctr_registry, "ClinicalTrials.gov", n)` NCT (`r report_result(suspected, priority, 2, n)` total)
+
+**Priority 3:** `r report_result(suspected |> filter(priority == 3), non_euctr_registry, "DRKS", n)` DRKS, `r report_result(suspected |> filter(priority == 3), non_euctr_registry, "ClinicalTrials.gov", n)` NCT (`r report_result(suspected, priority, 3, n)` total)
+
+**Priority 4:** `r report_result(suspected |> filter(priority == 4), non_euctr_registry, "DRKS", n)` DRKS, `r report_result(suspected |> filter(priority == 4), non_euctr_registry, "ClinicalTrials.gov", n)` NCT (`r report_result(suspected, priority, 4, n)` total)
+
+### Manually screened cross-registrations (n = `r nrow(final_data)`)
+
+```{r}
+
+final_data |>
+    count(priority, registry2)
+```
+
+### Validated cross-registrations (n = `r nrow(final_data |> filter(is_true_crossreg == "TRUE"))`)
+
+```{r}
+
+final_data |>
+  filter(is_true_crossreg == "TRUE") |>
+  count(priority, registry2)
+```
+
+# Discrepancy analysis
+
+The following analyses are going to be conducted only with the pairs that were considered **true cross-registrations**.
+
+```{r}
+
+discrepancy_data <- final_data |>
+  filter(is_true_crossreg == "TRUE")
+```
+
+# Summary results
+
+This analysis was limited to confirmed cross-registrations with a "`Completed`" overall recruitment status in both registries
+
+```{r}
+
+discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed") |>
+  count(registry2)
+```
+
+```{r}
+#| include: false
+
+# Create objects for inline in text below 
+total_observations <- discrepancy_data |> filter(overall_recruitment_status_reg1 == "Completed", overall_recruitment_status_reg2 == "Completed")
+
+euctr_ctgov_observations <- discrepancy_data |> filter(overall_recruitment_status_reg1 == "Completed", overall_recruitment_status_reg2 == "Completed", registry2 == "ClinicalTrials.gov")
+
+euctr_drks_observations <- discrepancy_data |> filter(overall_recruitment_status_reg1 == "Completed", overall_recruitment_status_reg2 == "Completed", registry2 == "DRKS")
+```
+
+The analysis was conducted on `r nrow(total_observations)` observations, from which `r nrow(euctr_ctgov_observations)` were EUCTR-ClinicalTrials.gov pairs, and `r nrow(euctr_drks_observations)` were EUCTR-DRKS pairs. No missing data was found in `has_summary_results`, for both main and sensitivity analyses.
+
+## Descriptive statistics
+
+### Main analysis
+
+For the main analysis, summary results were considered as reported (i.e. `has_summary_results_reg1_main == TRUE` or `has_summary_results_reg2_main == TRUE`) if a structure tabular result was available in the registry (DRKS did not provide a structured results format at the time of this study").
+
+Then the results were classified on the following categories:
+
+1.  Results reported only in EUCTR
+
+2.  Results reported in both registries
+
+3.  Results reported only on the other registry (DRKS or ClinicalTrials.gov)
+
+4.  No results reported in both registries
+
+The count and percentage of each category was reported.
+
+```{r}
+#| include: false
+
+# Function to calculate count and percentage for summary results
+
+tally_results <- function(discrepancy_tibble, registry_filter, type = "main", split_by_registry = FALSE) {
+  
+  registry_filter <- match.arg(registry_filter, choices = c("ClinicalTrials.gov", "DRKS", "Overall"))
+  
+  if (registry_filter != "Overall") {
+    discrepancy_tibble <- discrepancy_tibble |> 
+      filter(registry2 == registry_filter)
+  }
+  
+  type <- match.arg(type, choices = c("main", "sensitivity", "sensitivity_v2"))
+  
+  summary_reg1 <- paste0("has_summary_results_reg1_", type)
+  summary_reg2 <- paste0("has_summary_results_reg2_", type)
+  
+  summaries <- discrepancy_tibble |> 
+    filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed") |> 
+    mutate(result_label = case_when(
+      .data[[summary_reg1]] == FALSE & .data[[summary_reg2]] == FALSE ~ "No results",
+      .data[[summary_reg1]] == TRUE & .data[[summary_reg2]] == FALSE ~ "Only EUCTR",
+      .data[[summary_reg1]] == TRUE & .data[[summary_reg2]] == TRUE ~ "Both",
+      .data[[summary_reg1]] == FALSE & .data[[summary_reg2]] == TRUE ~ "Only other registry"
+    ),
+    result_label = factor(result_label, levels = c("Only other registry", "Both", "Only EUCTR", "No results")))
+  
+  if (split_by_registry == TRUE) {
+    summaries <- summaries |> 
+      count(registry2, result_label, name = "count") |> 
+      group_by(registry2) |> 
+      mutate(percent = count / sum(count) * 100,
+             label = paste0(round(percent, 0), "% (n = ", count, ")"))
+
+  } else {
+    
+    summaries <- summaries |> 
+      count(result_label, name = "count") |> 
+      mutate(percent = count / sum(count) * 100,
+             label = paste0(count, " (", round(percent, 0), "%)"))
+  }
+  summaries
+}
+```
+
+```{r}
+
+# Overall results comparing EUCTR - Other registry (either DRKS or ClinicalTrials.gov)
+discrepancy_data |>  tally_results("Overall", "main")
+
+# Results split by registry2 (EUCTR-ClinicalTrials.gov and EUCTR-DRKS)
+discrepancy_data |> tally_results("Overall", type = "main", split_by_registry = TRUE)
+```
+
+### First sensitivity analysis
+
+For the first sensitivity analysis, summary results were considered as reported (i.e. `has_summary_results_reg1_sensitivity == TRUE` or `has_summary_results_reg2_sensitivity == TRUE`) if any of the following were available in the summary results section:
+
+-   Structured tabular result (EUCTR and ClinicalTrials.gov only)
+
+-   Tabular result from another registry (EUCTR and DRKS only)
+
+-   Link to a file that reported results (EUCTR and DRKS only)
+
+-   Link to a termination statement (EUCTR and DRKS only)
+
+-   Link to a publication citation (EUCTR and DRKS only)
+
+-   Link to publication or abstract (EUCTR and DRKS only)
+
+In contrast to DRKS and EUCTR (which allow different entries in the results reporting field), ClinicalTrials.gov does not allow other formats to be uploaded in the "Results Overview" section of the registration. Thus, for ClinicalTrials.gov, the main and first sensitivity analysis are the same. Only in the second sensitivity analysis do we consider publication links listed in the "Publications" section in ClinicalTrials.gov
+
+The results were classified in the same categories as the main analysis. The count and percentage were reported.
+
+```{r}
+
+# Overall results comparing EUCTR - Other registry (either DRKS or ClinicalTrials.gov)
+discrepancy_data |>  tally_results("Overall", "sensitivity")
+
+# Results split by registry2 (EUCTR-ClinicalTrials.gov and EUCTR-DRKS)
+discrepancy_data |> tally_results("Overall", type = "sensitivity", split_by_registry = TRUE)
+```
+
+### Second sensitivity analysis
+
+This analysis extends the first sensitivity analysis to also include any publication link in ClinicalTrials.gov that was available in the publication section.
+
+Summary results were considered as reported (i.e. `has_summary_results_reg1_sensitivity_V2 == TRUE` or `has_summary_results_reg2_sensitivity_V2 == TRUE`) if any of the following were available in the registry:
+
+-   Structured tabular result (EUCTR and ClinicalTrials.gov only)
+
+-   Tabular result from another registry (EUCTR and DRKS only)
+
+-   Link to a file that reported results (EUCTR and DRKS only)
+
+-   Link to a termination statement (EUCTR and DRKS only)
+
+-   Link to a publication citation (EUCTR and DRKS only)
+
+-   Link to publication or abstract (EUCTR and DRKS only)
+
+-   Publication links listed in the "Publications" section in ClinicalTrials.gov
+
+```{r}
+
+# Overall results comparing EUCTR - Other registry (either DRKS or ClinicalTrials.gov)
+discrepancy_data |>  tally_results("Overall", "sensitivity_v2")
+
+# Results split by registry2 (EUCTR-ClinicalTrials.gov and EUCTR-DRKS)
+discrepancy_data |> tally_results("Overall", type = "sensitivity_v2", split_by_registry = TRUE)
+```
+
+## Figures
+
+### Summary results - main and first sensitivity analysis
+
+```{r}
+
+# Prepare data main analysis
+main_data_summary <- discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed") |>
+  mutate(result_label = case_when(
+      has_summary_results_reg1_main == FALSE & has_summary_results_reg2_main == FALSE ~ "No results",
+      has_summary_results_reg1_main == TRUE & has_summary_results_reg2_main == FALSE ~ "Only in EUCTR",
+      has_summary_results_reg1_main == TRUE & has_summary_results_reg2_main == TRUE ~ "Both",
+      has_summary_results_reg1_main == FALSE & has_summary_results_reg2_main == TRUE ~ "Only in other registry"),
+    result_label = factor(result_label, levels = c("Only in other registry", "Both", "Only in EUCTR", "No results"))) |>
+  group_by(registry2, result_label) |>
+  summarise(count = n(), .groups = 'drop') |>
+  group_by(registry2) |>
+  mutate(percent = count / sum(count) * 100) |>
+  mutate(label = paste0(round(percent, 0), "% (n = ", count, ")")) 
+
+# Prepare data sensitivity 1 analysis
+sensitivity_data_summary <- discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed") |>
+  mutate(result_label = case_when(
+      has_summary_results_reg1_sensitivity == FALSE & has_summary_results_reg2_sensitivity == FALSE ~ "No results",
+      has_summary_results_reg1_sensitivity == TRUE & has_summary_results_reg2_sensitivity == FALSE ~ "Only in EUCTR",
+      has_summary_results_reg1_sensitivity == TRUE & has_summary_results_reg2_sensitivity == TRUE ~ "Both",
+      has_summary_results_reg1_sensitivity == FALSE & has_summary_results_reg2_sensitivity == TRUE ~ "Only in other registry"),
+    result_label = factor(result_label, levels = c("Only in other registry", "Both", "Only in EUCTR", "No results"))) |>
+  group_by(registry2, result_label) |>
+  summarise(count = n(), .groups = 'drop') |>
+  group_by(registry2) |>
+  mutate(percent = count / sum(count) * 100) |>
+  mutate(label = paste0(round(percent, 0), "% (n = ", count, ")"))
+
+# Create function for summary results plot
+
+plot_crossregs_freq <- function(tib_summary, registry2, legend_position = "none") {
+  
+  registry2 <- match.arg(registry2, choices = c("DRKS", "ClinicalTrials.gov"))
+  
+  tib_summary |> 
+    ggplot(aes(x = analysis_type, y = percent, fill = result_label)) +
+    geom_bar(stat = "identity", position = "stack") +
+    geom_text(aes(label = label), position = position_stack(vjust = 0.5), size = 4.5) +
+    labs(x = paste("EUCTR -",  registry2), y = "Cross-registered pairs", fill = "Results reporting") +
+    scale_fill_manual(values = c("No results" = "lightgray", 
+                                 "Only in EUCTR" = "#2577c5", 
+                                 "Both" = "#3594cc", 
+                                 "Only in other registry" = "#8cc5e3")) +
+    scale_y_continuous(limits = c(0, 101), breaks = seq(0, 100, by = 10),
+                       labels = scales::percent_format(scale = 1)) +
+    theme_classic() +
+    theme(axis.text = element_text(size = 14),
+          axis.title = element_text(size = 14),
+          axis.title.x = element_text(margin = margin(t = 20)),
+          axis.text.x = element_text(margin = margin(t = 8)), 
+          axis.title.y = element_text(margin = margin(r = 20)),
+          legend.position = legend_position, 
+          legend.text = element_text(size = 12),
+          legend.title = element_text(size = 14)   
+        )
+}
+
+# Create 2-pane plot
+plot1 <- bind_rows(
+  main_data_summary |> 
+    filter(registry2 == "ClinicalTrials.gov") |>  
+    mutate(analysis_type = "Tabular results only"), 
+  sensitivity_data_summary |> 
+    filter(registry2 == "ClinicalTrials.gov") |> 
+    mutate(analysis_type = "Tabular + other formats (EUCTR)")) |> 
+  mutate(analysis_type = factor(analysis_type, levels = c("Tabular results only", "Tabular + other formats (EUCTR)"))) |> 
+  plot_crossregs_freq(registry2 = "ClinicalTrials.gov", legend_position = "none")
+
+plot2 <- bind_rows(
+  main_data_summary |> 
+    filter(registry2 == "DRKS") |> 
+    mutate(analysis_type = "Tabular results only"), 
+  sensitivity_data_summary |> 
+    filter(registry2 == "DRKS") |> 
+    mutate(analysis_type = "Tabular + other formats")) |> 
+  mutate(analysis_type = factor(analysis_type, levels = c("Tabular results only", "Tabular + other formats"))) |> 
+  plot_crossregs_freq(registry2 = "DRKS", legend_position = "right")
+
+# Define custom labels with manual line breaks
+custom_labels <- c(
+  "Tabular results only" = "Tabular results\nonly",
+  "Tabular + other formats" = "Tabular +\nother formats",
+  "Tabular + other formats (EUCTR)" = "Tabular + \nother formats (EUCTR)",
+  "Publications in ClinicalTrials.gov" = "Publications in\nClinicalTrials.gov")
+
+# Modify each plot before combining
+plot1 <- plot1 +
+  scale_x_discrete(labels = custom_labels) + 
+  theme(legend.position = "none")
+
+plot2 <- plot2 + scale_x_discrete(labels = custom_labels)
+
+# Combine plots
+combined_plot_summary <- plot1 + plot2 + plot_layout(ncol = 2)
+print(combined_plot_summary)
+
+#ggsave("summary_results_main.png", 
+#       plot = combined_plot_summary, 
+#       width = 16, height = 10, dpi = 300)
+```
+
+### Summary results - main, first sensitivity and second sensitivity analysis
+
+```{r}
+
+# Prepare data sensitivity 2 analysis
+sensitivity_data_summary_v2 <- discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed") |>
+  mutate(result_label = case_when(
+      has_summary_results_reg1_sensitivity_v2 == FALSE & has_summary_results_reg2_sensitivity_v2 == FALSE ~ "No results",
+      has_summary_results_reg1_sensitivity_v2 == TRUE & has_summary_results_reg2_sensitivity_v2 == FALSE ~ "Only in EUCTR",
+      has_summary_results_reg1_sensitivity_v2 == TRUE & has_summary_results_reg2_sensitivity_v2 == TRUE ~ "Both",
+      has_summary_results_reg1_sensitivity_v2 == FALSE & has_summary_results_reg2_sensitivity_v2 == TRUE ~ "Only in other registry"),
+    result_label = factor(result_label, levels = c("Only in other registry", "Both", "Only in EUCTR", "No results"))) |>
+  group_by(registry2, result_label) |>
+  summarise(count = n(), .groups = 'drop') |>
+  group_by(registry2) |>
+  mutate(percent = count / sum(count) * 100) |>
+  mutate(label = paste0(round(percent, 0), "% (n = ", count, ")"))
+
+# Create plot
+summary_results_sens <- bind_rows(
+  main_data_summary |> 
+    filter(registry2 == "ClinicalTrials.gov") |>  
+    mutate(analysis_type = "Tabular results only"), 
+  sensitivity_data_summary |> 
+    filter(registry2 == "ClinicalTrials.gov") |> 
+    mutate(analysis_type = "Tabular + other formats (EUCTR)"), 
+  sensitivity_data_summary_v2 |>
+    filter(registry2 == "ClinicalTrials.gov") |>
+    mutate(analysis_type = "Publications in ClinicalTrials.gov")) |> 
+  mutate(analysis_type = factor(analysis_type, levels = c("Tabular results only", "Tabular + other formats (EUCTR)", "Publications in ClinicalTrials.gov"))) |> 
+  plot_crossregs_freq(registry2 = "ClinicalTrials.gov", legend_position = "right")
+
+# Define custom labels with manual line breaks
+custom_labels <- c(
+  "Tabular results only" = "Tabular results\nonly",
+  "Tabular + other formats (EUCTR)" = "Tabular +\nother formats (EUCTR)",
+  "Publications in ClinicalTrials.gov" = "Publications in\nClinicalTrials.gov")
+
+# Modify each plot before combining
+summary_results_sens <- summary_results_sens +
+  scale_x_discrete(labels = custom_labels)
+
+# Result
+print(summary_results_sens)
+
+#ggsave("summary_results_sens.png", 
+#      plot = summary_results_sens, 
+#     width = 10, height = 10, dpi = 300)
+```
+
+# Recruitment status
+
+## Descriptive statistics
+
+This analysis was limited to confirmed cross-registrations with a recruitment status available in both registries (`overall_recruitment_status_reg1` and `overall_recruitment_status_reg2`).
+
+This analysis was also limited to confirmed cross-registrations with an available DE protocol (6 cases were excluded):
+
+```{r}
+
+recruitment_data <- discrepancy_data |>
+  filter(!trn1 %in% c("2011-006041-14", "2012-002699-14", "2009-013328-21", 
+                      "2005-003018-14", "2012-004555-36", "2005-002011-24"))
+```
+
+```{r}
+
+recruitment_data |>
+  count(overall_recruitment_status_reg1,
+        overall_recruitment_status_reg2) |>
+  mutate(percent = round(n / sum(n) * 100, 0))
+```
+
+Since there is no missing data on either registry, the analysis was done on `r nrow(recruitment_data)` pairs of true cross-registered pairs.
+
+```{r}
+
+recruitment_data |>
+  count(registry2) |>
+  mutate(percent = round(n / sum(n) * 100, 0))
+```
+
+Of those `r nrow(recruitment_data)` pairs, `r nrow(recruitment_data |> filter(registry2 == "ClinicalTrials.gov"))` were EUCTR-ClinicalTrials.gov and `r nrow(recruitment_data |> filter(registry2 == "DRKS"))` were EUCTR-DRKS
+
+```{r}
+
+recruitment_data |>
+  filter(registry2 == "ClinicalTrials.gov") |>
+  count(overall_recruitment_status_reg1,
+        overall_recruitment_status_reg2) |>
+  mutate(percent = round(n / sum(n) * 100, 0))
+
+recruitment_data |>
+  filter(registry2 == "DRKS") |>
+  count(overall_recruitment_status_reg1,
+        overall_recruitment_status_reg2) |>
+  mutate(percent = round(n / sum(n) * 100, 0))
+```
+
+```{r}
+#| include: false
+
+# Create objects for inline in text below 
+
+# EUCTR-ClinicalTrials.gov
+euctr_ctgov_percent_match <- recruitment_data |> 
+  filter(registry2 == "ClinicalTrials.gov") |> 
+  summarize(match_percentage = mean(overall_recruitment_status_reg1 == overall_recruitment_status_reg2) * 100) |>
+  round(0)
+
+euctr_ctgov_count_match <- recruitment_data |> filter(registry2 == "ClinicalTrials.gov", overall_recruitment_status_reg1 == overall_recruitment_status_reg2)
+  
+euctr_ctgov_percent_not_match <- recruitment_data |> 
+  filter(registry2 == "ClinicalTrials.gov") |> 
+  summarize(match_percentage = mean(overall_recruitment_status_reg1 != overall_recruitment_status_reg2) * 100) |>
+  round(0)
+
+euctr_ctgov_count_not_match <- recruitment_data |> filter(registry2 == "ClinicalTrials.gov", overall_recruitment_status_reg1 != overall_recruitment_status_reg2)
+
+# EUCTR-DRKS 
+euctr_drks_percent_match <- recruitment_data |> 
+  filter(registry2 == "DRKS") |> 
+  summarize(match_percentage = mean(overall_recruitment_status_reg1 == overall_recruitment_status_reg2) * 100) |>
+  round(0)
+
+euctr_drks_count_match <- recruitment_data |> filter(registry2 == "DRKS", overall_recruitment_status_reg1 == overall_recruitment_status_reg2)
+  
+euctr_drks_percent_not_match <- recruitment_data |> 
+  filter(registry2 == "DRKS") |> 
+  summarize(match_percentage = mean(overall_recruitment_status_reg1 != overall_recruitment_status_reg2) * 100) |>
+  round(0)
+
+euctr_drks_count_not_match <- recruitment_data |> filter(registry2 == "DRKS", overall_recruitment_status_reg1 != overall_recruitment_status_reg2)
+```
+
+For EUCTR-ClinicalTrials.gov cross-registered trials, `r euctr_ctgov_percent_match`% (n = `r nrow(euctr_ctgov_count_match)`) had the same overall recruitment status ("Completed"), and `r euctr_ctgov_percent_not_match`% (n = `r nrow(euctr_ctgov_count_not_match)`) had a different overall recruitment status.
+
+For EUCTR-DRKS cross-registered trials, `r euctr_drks_percent_match`% (n = `r nrow(euctr_drks_count_match)`) had the same overall recruitment status ("Completed"), and `r euctr_drks_percent_not_match`% (n = `r nrow(euctr_drks_count_not_match)`) had a different overall recruitment status.
+
+# Completion date
+
+## Descriptive statistics
+
+### Main analysis
+
+#### Count of observations included in the analysis
+
+This is limited to confirmed cross-registrations with a date in both registries (i.e. when we had missing data in one or both registries, this cross-registration was excluded from the analysis). Additionally, we filtered for overall recruitment status = Completed for both registries, and for EUCTR we excluded three cases where no global date was found on the results section and no DE protocol was available.
+
+**Note**: the discrepancy analysis of completion dates was conducted on completion dates rounded to the start of the month, to assess monthly differences.
+
+```{r}
+
+discrepancy_data |>
+  filter(!trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24"),
+         overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed"
+         ) |>
+  count(!is.na(completion_month_year_reg1))
+
+discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+  count(!is.na(completion_month_year_reg2))
+```
+
+```{r}
+#| include: false
+
+# Create objects for inline in text below 
+
+total_observations_reg1 <- discrepancy_data |>
+  filter(
+    !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24"),
+    overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed",
+    !is.na(completion_month_year_reg1))
+
+total_observations_reg2 <- discrepancy_data |>
+  filter(
+    overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed",
+    !is.na(completion_month_year_reg2))
+```
+
+For registry1 (EUCTR), there were `r nrow(total_observations_reg1)` pairs that were confirmed cross-registrations and no missing data on `completion_month_year_reg1`.
+
+For registry 2 (ClinicalTrials.gov or DRKS), all observations had data for `completion_month_year_reg2`.
+
+Therefore, the analysis was conducted in `r nrow(total_observations_reg1)` pairs.
+
+```{r}
+
+discrepancy_data |>
+  filter(
+    !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24"),
+    registry2 == "ClinicalTrials.gov",
+    overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+  count(!is.na(completion_month_year_reg1))
+
+discrepancy_data |>
+  filter(
+    !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24"),
+    registry2 == "DRKS", 
+    overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+  count(!is.na(completion_month_year_reg1))
+```
+
+```{r}
+#| include: false
+
+# Create objects for inline in text below 
+
+euctr_ctgov_count <- discrepancy_data |> 
+  filter(
+    !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24"),
+    overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed", 
+    !is.na(completion_month_year_reg1), registry2 == "ClinicalTrials.gov")
+
+euctr_drks_count <- discrepancy_data |> 
+  filter(
+    !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24"),
+    overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed", 
+    !is.na(completion_month_year_reg1), registry2 == "DRKS")
+```
+
+Of those `r nrow(total_observations_reg1)` pairs, `r nrow(euctr_ctgov_count)` were EUCTR-ClinicalTrials.gov and `r nrow(euctr_drks_count)` were EUCTR-DRKS.
+
+#### Percentages
+
+```{r}
+
+# Overall
+discrepancy_data |>
+  filter(
+    !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24"),
+    overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed",
+    !is.na(completion_month_year_reg1)) |>
+  count(completion_month_year_reg1 == completion_month_year_reg2) |>
+  mutate(percent = round(n / sum(n) * 100, 0))
+
+# ClinicalTrials.gov
+discrepancy_data |>
+  filter(
+    registry2 == "ClinicalTrials.gov",
+    !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24"),
+    overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed",
+    !is.na(completion_month_year_reg1)) |>
+  count(completion_month_year_reg1 == completion_month_year_reg2) |>
+  mutate(percent = round(n / sum(n) * 100, 0))
+
+# DRKS
+discrepancy_data |>
+  filter(registry2 == "DRKS",
+         !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24"),
+    overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed",
+    !is.na(completion_month_year_reg1)) |>
+  count(completion_month_year_reg1 == completion_month_year_reg2) |>
+  mutate(percent = round(n / sum(n) * 100, 0))
+```
+
+#### Descriptive statistics of month differences
+
+```{r}
+
+# CALCULATION FOR ALL CASES
+discrepancy_data |>
+  # Filter the data
+  filter(
+    !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24"),
+    overall_recruitment_status_reg1 == "Completed",
+    overall_recruitment_status_reg2 == "Completed",
+    !is.na(completion_month_year_reg1)
+  ) |>
+  # Calculate the month difference
+  mutate(
+    month_diff = abs(interval(completion_month_year_reg1, completion_month_year_reg2) %/% months(1))
+  ) |>
+  # Summarize descriptive statistics
+  summarise(
+    mean_month_diff = mean(month_diff),
+    median_month_diff = median(month_diff),
+    sd_month_diff = sd(month_diff),
+    min_month_diff = min(month_diff),
+    max_month_diff = max(month_diff),
+    n = n()
+  )
+
+# CALCULATION FOR ONLY DISCREPANT DATES 
+discrepancy_data |>
+  # Filter the data
+  filter(
+    !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24"),
+    overall_recruitment_status_reg1 == "Completed",
+    overall_recruitment_status_reg2 == "Completed",
+    !is.na(completion_month_year_reg1),
+    completion_month_year_reg1 != completion_month_year_reg2
+  ) |>
+  # Calculate the month difference
+  mutate(
+    month_diff = abs(interval(completion_month_year_reg1, completion_month_year_reg2) %/% months(1))
+  ) |>
+  # Summarize descriptive statistics
+  summarise(
+    mean_month_diff = mean(month_diff),
+    median_month_diff = median(month_diff),
+    sd_month_diff = sd(month_diff),
+    min_month_diff = min(month_diff),
+    max_month_diff = max(month_diff),
+    n = n()
+  )
+```
+
+#### Percentage of cases where EUCTR completion date was before/after/same
+
+```{r}
+
+# Overall
+discrepancy_data |>
+  filter(
+    !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24"),
+    overall_recruitment_status_reg1 == "Completed",
+    overall_recruitment_status_reg2 == "Completed",
+    !is.na(completion_month_year_reg1)) |>
+  mutate(date_comparison = case_when(
+    completion_month_year_reg1 < completion_month_year_reg2 ~ "Earlier",
+    completion_month_year_reg1 > completion_month_year_reg2 ~ "Later",
+    TRUE ~ "Same")) |>
+  count(date_comparison) |>
+  mutate(percent = n / sum(n) * 100)
+
+# ClinicalTrials.gov
+discrepancy_data |>
+  filter(registry2 == "ClinicalTrials.gov",
+         !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24"),
+         overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed",
+         !is.na(completion_month_year_reg1)) |>
+  mutate(date_comparison = case_when(
+    completion_month_year_reg1 < completion_month_year_reg2 ~ "Earlier",
+    completion_month_year_reg1 > completion_month_year_reg2 ~ "Later",
+    TRUE ~ "Same")) |>
+  count(date_comparison) |>
+  mutate(percent = n / sum(n) * 100)
+
+# DRKS
+discrepancy_data |>
+  filter(registry2 == "DRKS",
+         !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24"),
+         overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed",
+         !is.na(completion_month_year_reg1)) |>
+  mutate(date_comparison = case_when(
+    completion_month_year_reg1 < completion_month_year_reg2 ~ "Earlier",
+    completion_month_year_reg1 > completion_month_year_reg2 ~ "Later",
+    TRUE ~ "Same")) |>
+  count(date_comparison) |>
+  mutate(percent = n / sum(n) * 100)
+```
+
+### Sensitivity analysis
+
+This is a sensitivity analysis of completion date, where completion dates in the EUCTR were solely taken from the Germany member state protocol (EUCTR registrations without a German country protocol were excluded and completion dates on EUCTR Results pages were disregarded).
+
+#### Count of observations included in the analysis
+
+```{r}
+
+discrepancy_data |>
+    filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+    count(!is.na(completion_month_year_protocol))
+
+discrepancy_data |>
+    filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+    count(!is.na(completion_month_year_reg2))
+```
+
+```{r}
+#| include: false
+
+# Create object for inline in text below 
+
+total_observations_protocol_reg1 <- discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed",
+         !is.na(completion_month_year_protocol))
+```
+
+For registry1 (EUCTR), there were `r nrow(total_observations_protocol_reg1)` pairs that were confirmed cross-registrations and no missing data on `completion_month_year_protocol`. For registry 2 (ClinicalTrials.gov or DRKS), all observations had data. Therefore, the analysis was conducted in `r nrow(total_observations_protocol_reg1)` pairs.
+
+```{r}
+
+discrepancy_data |>
+  filter(registry2 == "ClinicalTrials.gov") |>
+  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+  count(!is.na(completion_month_year_protocol))
+
+discrepancy_data |>
+  filter(registry2 == "DRKS") |>
+  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+  count(!is.na(completion_month_year_reg1))
+```
+
+```{r}
+#| include: false
+
+# Create objects for inline in text below 
+
+euctr_ctgov_protocol_count <- discrepancy_data |> 
+  filter(
+    registry2 == "ClinicalTrials.gov", 
+    overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed", 
+    !is.na(completion_month_year_protocol))
+
+euctr_drks_protocol_count <- discrepancy_data |> 
+  filter(
+    registry2 == "DRKS", 
+    overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed", 
+    !is.na(completion_month_year_protocol))
+```
+
+Of those `r nrow(total_observations_protocol_reg1)` pairs, `r nrow(euctr_ctgov_protocol_count)` were EUCTR-ClinicalTrials.gov and `r nrow(euctr_drks_protocol_count)` were EUCTR-DRKS.
+
+#### Percentages
+
+```{r}
+
+# Overall
+discrepancy_data |>
+  filter(!is.na(completion_month_year_protocol)) |>
+  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+  count(completion_month_year_protocol == completion_month_year_reg2) |>
+  mutate(percent = round(n / sum(n) * 100, 0))
+
+# ClinicalTrials.gov
+discrepancy_data |>
+  filter(registry2 == "ClinicalTrials.gov") |>
+  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+  filter(!is.na(completion_month_year_protocol)) |>
+  count(completion_month_year_protocol == completion_month_year_reg2) |>
+  mutate(percent = round(n / sum(n) * 100, 0))
+
+# DRKS
+discrepancy_data |>
+  filter(registry2 == "DRKS") |>
+  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+  filter(!is.na(completion_month_year_protocol)) |>
+  count(completion_month_year_protocol == completion_month_year_reg2) |>
+  mutate(percent = round(n / sum(n) * 100, 0))
+```
+
+#### Descriptive statistics of month differences
+
+```{r}
+
+# CALCULATION FOR ALL CASES
+discrepancy_data |>
+  # Filter the data
+  filter(
+    overall_recruitment_status_reg1 == "Completed",
+    overall_recruitment_status_reg2 == "Completed",
+    !is.na(completion_month_year_protocol)
+  ) |>
+  # Calculate the month difference
+  mutate(
+    month_diff = abs(interval(completion_month_year_protocol, completion_month_year_reg2) %/% months(1))
+  ) |>
+  # Summarize descriptive statistics
+  summarise(
+    mean_month_diff = mean(month_diff),
+    median_month_diff = median(month_diff),
+    sd_month_diff = sd(month_diff),
+    min_month_diff = min(month_diff),
+    max_month_diff = max(month_diff),
+    n = n()
+  )
+
+# CALCULATION FOR ONLY DISCREPANT DATES 
+discrepancy_data |>
+  # Filter the data
+  filter(
+    overall_recruitment_status_reg1 == "Completed",
+    overall_recruitment_status_reg2 == "Completed",
+    !is.na(completion_month_year_protocol),
+    completion_month_year_protocol != completion_month_year_reg2
+  ) |>
+  # Calculate the month difference
+  mutate(
+    month_diff = abs(interval(completion_month_year_protocol, completion_month_year_reg2) %/% months(1))
+  ) |>
+  # Summarize descriptive statistics
+  summarise(
+    mean_month_diff = mean(month_diff),
+    median_month_diff = median(month_diff),
+    sd_month_diff = sd(month_diff),
+    min_month_diff = min(month_diff),
+    max_month_diff = max(month_diff),
+    n = n()
+  )
+```
+
+#### Percentage of cases where EUCTR completion date was before/after/same
+
+```{r}
+
+# Overall
+discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed",
+         !is.na(completion_month_year_protocol)) |>
+  mutate(date_comparison = case_when(
+    completion_month_year_protocol < completion_month_year_reg2 ~ "Earlier",
+    completion_month_year_protocol > completion_month_year_reg2 ~ "Later",
+    TRUE ~ "Same")) |>
+  count(date_comparison) |>
+  mutate(percent = n / sum(n) * 100)
+
+# ClinicalTrials.gov
+discrepancy_data |>
+  filter(registry2 == "ClinicalTrials.gov") |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed",
+         !is.na(completion_month_year_protocol)) |>
+  mutate(date_comparison = case_when(
+    completion_month_year_protocol < completion_month_year_reg2 ~ "Earlier",
+    completion_month_year_protocol > completion_month_year_reg2 ~ "Later",
+    TRUE ~ "Same")) |>
+  count(date_comparison) |>
+  mutate(percent = n / sum(n) * 100)
+
+# DRKS
+discrepancy_data |>
+  filter(registry2 == "DRKS") |>
+  filter(overall_recruitment_status_reg1 == "Completed",
+         overall_recruitment_status_reg2 == "Completed",
+         !is.na(completion_month_year_protocol)) |>
+  mutate(date_comparison = case_when(
+    completion_month_year_protocol < completion_month_year_reg2 ~ "Earlier",
+    completion_month_year_protocol > completion_month_year_reg2 ~ "Later",
+    TRUE ~ "Same")) |>
+  count(date_comparison) |>
+  mutate(percent = n / sum(n) * 100)
+```
+
+## Figures
+
+### Main analysis plot
+
+```{r}
+
+completion_date_main <- discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+  filter(!is.na(completion_month_year_reg1) & !is.na(completion_month_year_reg2),
+         !trn1 %in% c("2009-013328-21", "2012-004555-36", "2005-002011-24")) |>
+  mutate(time_diff = abs(completion_month_year_reg2 - completion_month_year_reg1),
+         is_equal = completion_month_year_reg1 == completion_month_year_reg2) |>
+  arrange(time_diff) |>
+  mutate(trn1 = factor(trn1, levels = trn1)) |> 
+  ggplot(aes(completion_month_year_reg1, completion_month_year_reg2, color = registry2)) +
+  geom_point(alpha = 0.6, size = 2) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dotted", color = "black", alpha = 0.7) +
+  theme_classic() +
+  theme(legend.position = "right",
+        legend.background = element_rect(color = "black", fill = "white"),
+        legend.text = element_text(size = 14),    # Size of legend categoriews
+        legend.title = element_text(size = 15),   # Size of legend title
+        axis.text = element_text(size = 12),      # Size of years
+        axis.title = element_text(size = 14),     # Size of axis titles
+        axis.ticks.length = unit(0.3, "cm"),      # Length of axis ticks
+        axis.title.x = element_text(margin = margin(t = 20, b = 15)), # Size of margins x-axis
+        axis.title.y = element_text(margin = margin(r = 20, l = 10)), # Size of margins y-axis
+        axis.text.x = element_text(margin = margin(t = 10)), # Distance of label to x-axis
+        axis.text.y = element_text(margin = margin(r = 10))  # Distance of label to y-axis
+  ) +  
+  labs(x = "Year of completion on EUCTR",
+       y = "Year of completion on other registry") +  
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y", limits = c(ym("2007-01"), ym("2023-01"))) +
+  scale_y_date(date_breaks = "1 year", date_labels = "%Y", limits = c(ym("2007-01"), ym("2023-01"))) +
+  scale_color_manual(name = "Registry", values = c("#F7C72F", "steelblue")) +
+  coord_fixed() # Ensures 1:1 ratio for the plot
+
+print(completion_date_main)
+
+#ggsave("completion_date_main.png", 
+#       plot = completion_date_main, 
+#       width = 12, height = 10, dpi = 300)
+```
+
+### Sensitivity analysis plot
+
+```{r}
+
+completion_date_sens <- discrepancy_data |>
+  filter(overall_recruitment_status_reg1 == "Completed" & overall_recruitment_status_reg2 == "Completed") |>
+  filter(!is.na(completion_month_year_protocol) & !is.na(completion_month_year_reg2)) |>
+  mutate(time_diff = abs(completion_month_year_reg2 - completion_month_year_protocol),
+         is_equal = completion_month_year_protocol == completion_month_year_reg2) |>
+  arrange(time_diff) |>
+  mutate(trn1 = factor(trn1, levels = trn1)) |> 
+  ggplot(aes(completion_month_year_protocol, completion_month_year_reg2, color = registry2)) +
+  geom_point(alpha = 0.6, size = 2) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dotted", color = "black", alpha = 0.7) +
+  theme_classic() +
+  theme(legend.position = "right",
+        legend.background = element_rect(color = "black", fill = "white"),
+        legend.text = element_text(size = 14),    # Size of legend categoriews
+        legend.title = element_text(size = 15),   # Size of legend title
+        axis.text = element_text(size = 12),      # Size of years
+        axis.title = element_text(size = 14),     # Size of axis titles
+        axis.ticks.length = unit(0.3, "cm"),      # Length of axis ticks
+        axis.title.x = element_text(margin = margin(t = 20, b = 15)), # Size of margins x-axis
+        axis.title.y = element_text(margin = margin(r = 20, l = 10)),  # Size of margins y-axis
+        axis.text.x = element_text(margin = margin(t = 10)), # Distance of label to x-axis
+        axis.text.y = element_text(margin = margin(r = 10))  # Distance of label to y-axis
+  ) + 
+  labs(x = "Year of completion on EUCTR",
+       y = "Year of completion on other registry") +  
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y", limits = c(ym("2007-01"), ym("2023-01"))) +
+  scale_y_date(date_breaks = "1 year", date_labels = "%Y", limits = c(ym("2007-01"), ym("2023-01"))) +
+  scale_color_manual(name = "Registry", values = c("#F7C72F", "steelblue")) +
+  coord_fixed() # Ensures 1:1 ratio for the plot
+
+print(completion_date_sens)
+
+#ggsave("completion_date_sens.png", 
+#       plot = completion_date_sens, 
+#       width = 12, height = 10, dpi = 300)
+```
